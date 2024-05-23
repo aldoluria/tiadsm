@@ -1,0 +1,11 @@
+{% extends './layout_admin.html' %}
+
+{% block title %} {{titulo}} {% endblock %}
+
+{% block body %}
+
+    <h1>¡Bienvenido a tu {{titulo}}!</h1>
+
+    <a href="{{url_for('index')}}">Inicio</a>
+
+{% endblock %}

@@ -16,6 +16,11 @@ def dashboard():
     titulo = "Panel de Administración"
     return render_template('dashboard.html', titulo=titulo)
 
+@app.route("/dashboard/users")
+def users():
+    titulo = "Usuarios"
+    return render_template('users.html', titulo=titulo)
+
 def pagina_no_encontrada(error):
     return render_template('404.html')
 
