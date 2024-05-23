@@ -1,0 +1,15 @@
+{% extends './layout.html' %}
+
+{% block title %} Error: 404 Página no Encontrada {% endblock %}
+
+{% block body %}
+
+    <h1>Error 404</h1>
+    <p>La página a la que usted quiere ingresar, no existe.</p>
+    <p>Verifique su ortografía o regrese al inicio</p>
+    <img src="{{ url_for('static', filename='img/404_error.png') }}" height=""  width="
+    " alt="Aqui deberia ir una imagen">
+    <br>
+    <a class="btn btn-primary" href="{{url_for('index')}}">Inicio!</a>
+
+{% endblock %}
