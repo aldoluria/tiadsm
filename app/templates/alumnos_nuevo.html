@@ -1,0 +1,34 @@
+{% extends './layout_admin.html' %}
+
+{% block title %} {{titulo}} {% endblock %}
+
+{% block body %}
+
+
+
+<form method="post" action="{{url_for('alumnos_crear')}}">
+    <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+    <div class="form-group">
+      <label for="nombre">Nombre(s)</label>
+      <input type="text" class="form-control" id="nombre" placeholder="Nombre(s)" name="nombre">
+    </div>
+    
+    <div class="form-group">
+      <label for="paterno">Apellido Paterno</label>
+      <input type="text" class="form-control" id="paterno" placeholder="Apellido Paterno" name="paterno">
+    </div>
+
+    <div class="form-group">
+      <label for="materno">Apellido Materno</label>
+      <input type="text" class="form-control" id="materno" placeholder="Apellido Materno" name="materno">
+    </div>
+    <button class="btn btn-primary d-inline-flex align-items-center" type="submit">
+        Guardar
+    </button>
+    <a class="btn btn-outline-danger d-inline-flex align-items-center" href="{{url_for('alumnos')}}">
+        Cancelar
+    </a>
+</form>
+
+
+{% endblock %}

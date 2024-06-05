@@ -1,3 +1,7 @@
+a {
+  text-decoration: none !important;
+}
+
 #sidebar {
     overflow: hidden;
     z-index: 3;
