@@ -1,0 +1,18 @@
+{% extends './layout_admin.html' %}
+
+{% block title %} {{titulo}} {% endblock %}
+
+{% block body %}
+<h1>{{alumno.1}} {{alumno.2}} {{alumno.3}}</h1>
+<p><strong>Estado: </strong>
+    {% if alumno.4==true %}
+    Activo
+    {% else %}
+    Baja
+    {% endif %}
+</p>
+<p>Fecha de creación: {{alumno.5}}</p>
+<p>Última edición: {{alumno.6}}</p>
+<a href="{{url_for('alumnos_editar', id=alumno[0])}}" class="btn btn-primary">Editar</a>
+<a href="{{ url_for('alumnos') }}" class="btn btn-danger">Atras</a>
+{% endblock %}

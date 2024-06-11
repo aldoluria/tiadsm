@@ -1,0 +1,44 @@
+{% extends './layout_admin.html' %}
+
+{% block title %} {{titulo}} {% endblock %}
+
+{% block body %}
+<form method="post" action="{{url_for('alumnos_actualizar', id=alumno[0])}}">
+    <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+    <div class="form-group">
+      <label for="nombre">Nombre(s)</label>
+      <input type="text" class="form-control" id="nombre" placeholder="Nombre(s)" name="nombre" value="{{alumno.1}}">
+    </div>
+    
+    <div class="form-group">
+      <label for="paterno">Apellido Paterno</label>
+      <input type="text" class="form-control" id="paterno" placeholder="Apellido Paterno" name="paterno" value="{{alumno.2}}">
+    </div>
+
+    <div class="form-group">
+      <label for="materno">Apellido Materno</label>
+      <input type="text" class="form-control" id="materno" placeholder="Apellido Materno" name="materno" value="{{alumno.3}}">
+    </div>
+      
+
+    <label for="materno">Estado</label>
+    <select class="form-select" aria-label="Default select example" name="estado">
+      <option selected
+        {% if alumno.4==true %}
+          value="True">Activo
+        {% else %}
+        value="False">Baja
+        {% endif %}
+      </option>
+      <option value="True">Activo</option>
+      <option value="False">Baja</option>
+    </select>
+
+    <button class="btn btn-primary d-inline-flex align-items-center" type="submit">
+        Guardar
+    </button>
+    <a class="btn btn-outline-danger d-inline-flex align-items-center" href="{{url_for('alumnos')}}">
+        Cancelar
+    </a>
+</form>
+{% endblock %}

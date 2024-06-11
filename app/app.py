@@ -1,5 +1,7 @@
 import os
 import psycopg2
+import pytz
+from datetime import datetime
 from flask import Flask, render_template, url_for, redirect, request, flash
 from flask_wtf.csrf import CSRFProtect
 
@@ -74,12 +76,16 @@ def alumnos_crear():
         paterno = request.form['paterno']
         materno = request.form['materno']
         activo = True
+        creado = datetime.now()
+        editado = datetime.now()
+
+        print(editado)
 
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute('INSERT INTO alumnos (nombre, apellido_paternno, apellido_materno, activo)'
-                    'VALUES (%s, %s, %s, %s)',
-                    (nombre, paterno, materno, activo))
+        cur.execute('INSERT INTO alumnos (nombre, apellido_paterno, apellido_materno, activo, creado, editado)'
+                    'VALUES (%s, %s, %s, %s, %s, %s)',
+                    (nombre, paterno, materno, activo, creado, editado))
         conn.commit()
         cur.close()
         conn.close()
@@ -89,6 +95,64 @@ def alumnos_crear():
         return redirect(url_for('alumnos'))
 
     return redirect(url_for('alumnos_nuevo'))
+
+@app.route('/dashboard/alumnos/<string:id>')
+def alumnos_detalles(id):
+    titulo = "Detalles del Alumno"
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM alumnos WHERE id_alumno={0}'.format(id))
+    alumno=cur.fetchall()
+    conn.commit()
+    cur.close()
+    conn.close()
+    
+    return render_template('alumnos_detalles.html', titulo=titulo, alumno=alumno[0])
+
+@app.route('/dashboard/alumnos/editar/<string:id>')
+def alumnos_editar(id):
+    titulo = "Editar Alumno"
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM alumnos WHERE id_alumno={0}'.format(id))
+    alumno=cur.fetchall()
+    conn.commit()
+    cur.close()
+    conn.close()
+    return render_template('alumnos_editar.html', titulo=titulo, alumno=alumno[0])
+
+@app.route('/dashboard/alumnos/actualizar/<string:id>', methods=['POST'])
+def alumnos_actualizar(id):
+    if request.method == 'POST':
+        nombre = request.form['nombre']
+        paterno = request.form['paterno']
+        materno = request.form['materno']
+        activo = request.form['estado']
+        editado = datetime.now()
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        sql="UPDATE alumnos SET nombre=%s, apellido_paterno=%s, apellido_materno=%s , activo=%s, editado=%s WHERE id_alumno=%s"        
+        valores=(nombre, paterno, materno, activo, editado, id)
+        cur.execute(sql,valores)
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        flash('¡Alumno modificado exitosamente!')
+    return redirect(url_for('alumnos'))
+
+@app.route('/dashboard/alumnos/eliminar/<string:id>')
+def alumnos_eliminar(id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    sql="DELETE FROM alumnos WHERE id_alumno={0}".format(id)
+    cur.execute(sql)
+    conn.commit()
+    cur.close()
+    conn.close()
+    flash('¡Alumno  eliminado correctamente!')
+    return redirect(url_for('alumnos'))
 
 #------------------------- CRUD Profesores -------------------------
 
