@@ -1,5 +1,5 @@
 #Ignora a la carpeta .venv
-/.venv
+.venv
 
 #ignora las imagenes de los alumnos
 /app/static/img/uploads/alumnos
