@@ -6,8 +6,10 @@
 
 
 
-<form method="post" action="{{url_for('alumnos_crear')}}">
+<form method="post" action="{{url_for('alumnos_crear')}}" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+    <label>Archivo:</label>
+        <input type="file" name="Foto" required accept="image/png, .jpeg, .jpg">
     <div class="form-group">
       <label for="nombre">Nombre(s)</label>
       <input type="text" class="form-control" id="nombre" placeholder="Nombre(s)" name="nombre">
@@ -25,7 +27,7 @@
     <button class="btn btn-primary d-inline-flex align-items-center" type="submit">
         Guardar
     </button>
-    <a class="btn btn-outline-danger d-inline-flex align-items-center" href="{{url_for('alumnos')}}">
+    <a class="btn btn-outline-danger d-inline-flex align-items-center" href="{{url_for('alumnos_dashboard')}}">
         Cancelar
     </a>
 </form>

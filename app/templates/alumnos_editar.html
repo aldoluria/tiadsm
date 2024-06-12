@@ -3,7 +3,7 @@
 {% block title %} {{titulo}} {% endblock %}
 
 {% block body %}
-<form method="post" action="{{url_for('alumnos_actualizar', id=alumno[0])}}">
+<form method="post" action="{{url_for('alumnos_actualizar', id=alumno[0])}}" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
     <div class="form-group">
       <label for="nombre">Nombre(s)</label>
@@ -24,7 +24,7 @@
     <label for="materno">Estado</label>
     <select class="form-select" aria-label="Default select example" name="estado">
       <option selected
-        {% if alumno.4==true %}
+        {% if alumno.8==true %}
           value="True">Activo
         {% else %}
         value="False">Baja
@@ -37,7 +37,7 @@
     <button class="btn btn-primary d-inline-flex align-items-center" type="submit">
         Guardar
     </button>
-    <a class="btn btn-outline-danger d-inline-flex align-items-center" href="{{url_for('alumnos')}}">
+    <a class="btn btn-outline-danger d-inline-flex align-items-center" href="{{url_for('alumnos_dashboard')}}">
         Cancelar
     </a>
 </form>

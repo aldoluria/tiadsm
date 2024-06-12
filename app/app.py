@@ -1,7 +1,8 @@
 import os
+import uuid
 import psycopg2
-import pytz
 from datetime import datetime
+from werkzeug.utils import secure_filename
 from flask import Flask, render_template, url_for, redirect, request, flash
 from flask_wtf.csrf import CSRFProtect
 
@@ -28,19 +29,30 @@ def get_db_connection():
     except psycopg2.Error as error:
         print(f"Error al conectar a la base de datos: {error}")
         return None
+    
+def my_random_string(string_length=10):
+    """Regresa una cadena aleatoria de la longitud de string_length."""
+    random = str(uuid.uuid4()) # Conviente el formato UUID a una cadena de Python.
+    random = random.upper() # Hace todos los caracteres mayusculas.
+    random = random.replace("-","") # remueve el separador UUID '-'.
+    return random[0:string_length] # regresa la cadena aleatoria.
+
+#print(my_random_string(10)) # Por ejemplo, 9BC871E354
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+ruta_alumnos=app.config['UPLOAD_FOLDER']='./app/static/img/uploads/alumnos/'
+ruta_profesores=app.config['UPLOAD_FOLDER']='./app/static/img/uploads/profesores/'
 
 app.secret_key='mysecretkey'
 
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 @app.route("/")
 def index():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute('SELECT * FROM alumnos;')
-    alumnos = cur.fetchall()
-    cur.close()
-    conn.close()
-    titulo = "Clase Chidita del dia de HOY!!!!!!!!!"
-    return render_template('index.html', titulo=titulo, alumnos=alumnos)
+    titulo = "Plataforma de cursos"
+    return render_template('index.html', titulo=titulo)
 
 @app.route("/about-us")
 def about_us():
@@ -54,11 +66,11 @@ def dashboard():
 #------------------------- CRUD Alumnos -------------------------
 
 @app.route("/dashboard/alumnos")
-def alumnos():
+def alumnos_dashboard():
     titulo = "Alumnos"
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute('SELECT * FROM alumnos;')
+    cur.execute('SELECT * FROM alumnos WHERE activo=true ORDER BY id_alumno DESC;')
     alumnos = cur.fetchall()
     cur.close()
     conn.close()
@@ -78,21 +90,35 @@ def alumnos_crear():
         activo = True
         creado = datetime.now()
         editado = datetime.now()
+        situacion = True
+        imagen=request.files['Foto']
 
-        print(editado)
+        if imagen and allowed_file(imagen.filename):
+            # Verificar si el archivo con el mismo nombre ya existe
+            # Creamos un nombre dinamico para la foto de perfil con el nombre del alumno y una cadena aleatoria
+            cadena_aleatoria = my_random_string(10)
+            filename = paterno + "_" + materno + "_" + nombre + "_" + str(creado)[:10] + "_" + cadena_aleatoria + "_" + secure_filename(imagen.filename)
+            file_path = os.path.join(ruta_alumnos, filename)
+            if os.path.exists(file_path):
+                flash('Error: ¡Un archivo con el mismo nombre ya existe! Intente renombrar su archivo.')
+                return redirect(url_for('alumnos_dashboard'))
+            # Guardar el archivo y registrar en la base de datos
+            imagen.save(file_path)
 
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute('INSERT INTO alumnos (nombre, apellido_paterno, apellido_materno, activo, creado, editado)'
-                    'VALUES (%s, %s, %s, %s, %s, %s)',
-                    (nombre, paterno, materno, activo, creado, editado))
-        conn.commit()
-        cur.close()
-        conn.close()
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute('INSERT INTO alumnos (nombre, apellido_paterno, apellido_materno, activo, creado, editado, imagen, situacion)'
+                        'VALUES (%s, %s, %s, %s, %s, %s, %s, %s)',
+                        (nombre, paterno, materno, activo, creado, editado,filename,situacion))
+            conn.commit()
+            cur.close()
+            conn.close()
 
-        flash('¡Alumno agregado exitosamente!')
-
-        return redirect(url_for('alumnos'))
+            flash('¡Alumno agregado exitosamente!')
+            return redirect(url_for('alumnos_dashboard'))
+        else:
+            flash('Error: ¡Extensión de archivo invalida! Intente con una imagen valida PNG, JPG o JPEG')
+            return redirect(url_for('alumnos_dashboard'))
 
     return redirect(url_for('alumnos_nuevo'))
 
@@ -106,7 +132,6 @@ def alumnos_detalles(id):
     conn.commit()
     cur.close()
     conn.close()
-    
     return render_template('alumnos_detalles.html', titulo=titulo, alumno=alumno[0])
 
 @app.route('/dashboard/alumnos/editar/<string:id>')
@@ -127,32 +152,36 @@ def alumnos_actualizar(id):
         nombre = request.form['nombre']
         paterno = request.form['paterno']
         materno = request.form['materno']
-        activo = request.form['estado']
+        situacion = request.form['estado']
         editado = datetime.now()
 
         conn = get_db_connection()
         cur = conn.cursor()
-        sql="UPDATE alumnos SET nombre=%s, apellido_paterno=%s, apellido_materno=%s , activo=%s, editado=%s WHERE id_alumno=%s"        
-        valores=(nombre, paterno, materno, activo, editado, id)
+        sql="UPDATE alumnos SET nombre=%s, apellido_paterno=%s, apellido_materno=%s , situacion=%s, editado=%s WHERE id_alumno=%s"        
+        valores=(nombre, paterno, materno, situacion, editado, id)
         cur.execute(sql,valores)
         conn.commit()
         cur.close()
         conn.close()
 
         flash('¡Alumno modificado exitosamente!')
-    return redirect(url_for('alumnos'))
+    return redirect(url_for('alumnos_dashboard'))
 
 @app.route('/dashboard/alumnos/eliminar/<string:id>')
 def alumnos_eliminar(id):
+    activo = False
+    editado = datetime.now()
     conn = get_db_connection()
     cur = conn.cursor()
-    sql="DELETE FROM alumnos WHERE id_alumno={0}".format(id)
-    cur.execute(sql)
+    #sql="DELETE FROM alumnos WHERE id_alumno={0}".format(id)
+    sql="UPDATE alumnos SET activo=%s, editado=%s WHERE id_alumno=%s"
+    valores=(activo,editado,id)
+    cur.execute(sql,valores)
     conn.commit()
     cur.close()
     conn.close()
     flash('¡Alumno  eliminado correctamente!')
-    return redirect(url_for('alumnos'))
+    return redirect(url_for('alumnos_dashboard'))
 
 #------------------------- CRUD Profesores -------------------------
 

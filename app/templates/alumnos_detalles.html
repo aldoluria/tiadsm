@@ -3,16 +3,28 @@
 {% block title %} {{titulo}} {% endblock %}
 
 {% block body %}
-<h1>{{alumno.1}} {{alumno.2}} {{alumno.3}}</h1>
-<p><strong>Estado: </strong>
-    {% if alumno.4==true %}
-    Activo
-    {% else %}
-    Baja
-    {% endif %}
-</p>
-<p>Fecha de creación: {{alumno.5}}</p>
-<p>Última edición: {{alumno.6}}</p>
+
+<div class="card mb-3" style="max-width: 540px;">
+    <div class="row g-0">
+      <div class="col-md-4">
+        <img src="{{ url_for('static', filename='img/uploads/alumnos/') + alumno.7 }}" class="img-fluid rounded-start" alt="...">
+      </div>
+      <div class="col-md-8">
+        <div class="card-body">
+          <h5 class="card-title">{{alumno.1}} {{alumno.2}} {{alumno.3}}</h5>
+          <p class="card-text"><strong>Estado: </strong>
+            {% if alumno.8==true %}
+            <p style="color: green;">Activo</p>
+            {% else %}
+            <p style="color: red;">Baja</p>
+            {% endif %}</p>
+          <p class="card-text"><small class="text-muted">Última edición: {{alumno.6}}</small></p>
+          <p class="card-text"><small class="text-muted">Fecha de creación: {{alumno.5}}</small></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
 <a href="{{url_for('alumnos_editar', id=alumno[0])}}" class="btn btn-primary">Editar</a>
-<a href="{{ url_for('alumnos') }}" class="btn btn-danger">Atras</a>
+<a href="{{ url_for('alumnos_dashboard') }}" class="btn btn-danger">Atras</a>
 {% endblock %}

@@ -16,13 +16,33 @@
             <div class="col-auto col-md-3 col-xl-2 px-sm-2 px-0 bg-dark">
                 <div class="d-flex flex-column align-items-center align-items-sm-start px-3 pt-2 text-white min-vh-100">
                     <a href="/" class="d-flex align-items-center pb-3 mb-md-0 me-md-auto text-white text-decoration-none">
-                        <span class="fs-5 d-none d-sm-inline">Clases</span>
+                        <span class="fs-5 d-none d-sm-inline">Logo</span>
                     </a>
                     <ul class="nav nav-pills flex-column mb-sm-auto mb-0 align-items-center align-items-sm-start" id="menu">
                         <li class="nav-item">
-                            <a href="#" class="nav-link align-middle px-0">
-                                <i class="fs-4 bi-house"></i> <span class="ms-1 d-none d-sm-inline">Home</span>
+                            <a href="{{url_for('index')}}" class="nav-link px-0 align-middle layout_admin">
+                                <i class="fas fa-home"></i></i> <span class="ms-1 d-none d-sm-inline">Home</span>
                             </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('alumnos_dashboard') }}" class="nav-link px-0 align-middle layout_admin">
+                                <i class="fas fa-book-reader"></i> <span class="ms-1 d-none d-sm-inline">Alumnos</span></a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('dashboard') }}" class="nav-link px-0 align-middle layout_admin">
+                                <i class="fas fa-layer-group"></i></i> <span class="ms-1 d-none d-sm-inline">Grupos</span></a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('dashboard') }}" class="nav-link px-0 align-middle layout_admin">
+                                <i class="fas fa-chalkboard-teacher"></i> <span class="ms-1 d-none d-sm-inline">Profesores</span></a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('dashboard') }}" class="nav-link px-0 align-middle layout_admin">
+                                <i class="fas fa-book"></i></i> <span class="ms-1 d-none d-sm-inline">Materias</span></a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('dashboard') }}" class="nav-link px-0 align-middle layout_admin">
+                                <i class="fas fa-user-friends"></i></i> <span class="ms-1 d-none d-sm-inline">Usuarios</span></a>
                         </li>
                         <!--<li>
                             <a href="#submenu1" data-bs-toggle="collapse" class="nav-link px-0 align-middle">
@@ -35,48 +55,56 @@
                                     <a href="#" class="nav-link px-0"> <span class="d-none d-sm-inline">Item</span> 2 </a>
                                 </li>
                             </ul>
-                        </li>-->
-                        <li>
-                            <a href="#" class="nav-link px-0 align-middle">
-                                <i class="fs-4 bi-table"></i> <span class="ms-1 d-none d-sm-inline">Dashboard</span></a>
                         </li>
                         <li>
                             <a href="#submenu1" data-bs-toggle="collapse" class="nav-link px-0 align-middle ">
-                                <i class="fs-4 bi-bootstrap"></i> <span class="ms-1 d-none d-sm-inline">Alumnos</span></a>
+                                <i class="fas fa-user-graduate"></i> <span class="ms-1 d-none d-sm-inline">Alumnos</span></a>
                             <ul class="collapse nav flex-column ms-1" id="submenu1" data-bs-parent="#menu">
                                 <li class="w-100">
-                                    <a href="{{ url_for('alumnos') }}" class="nav-link px-0"> <span class="d-none d-sm-inline">Ver</span></a>
+                                    <a href="{{ url_for('alumnos_dashboard') }}" class="nav-link px-0"> <span class="d-none d-sm-inline">Ver </span><i class="fas fa-list-ul"></i></a>
                                 </li>
                                 <li>
-                                    <a href="{{ url_for('alumnos_nuevo') }}" class="nav-link px-0"> <span class="d-none d-sm-inline">Crear</span></a>
+                                    <a href="{{ url_for('alumnos_nuevo') }}" class="nav-link px-0"> <span class="d-none d-sm-inline"></i>Crear </span><i class="fas fa-plus"></i></a>
                                 </li>
                             </ul>
                         </li>
                         <li>
                             <a href="#submenu2" data-bs-toggle="collapse" class="nav-link px-0 align-middle ">
-                                <i class="fs-4 bi-bootstrap"></i> <span class="ms-1 d-none d-sm-inline">Profesores</span></a>
+                                <i class="fas fa-university"></i></i> <span class="ms-1 d-none d-sm-inline">Profesores</span></a>
                             <ul class="collapse nav flex-column ms-1" id="submenu2" data-bs-parent="#menu">
                                 <li class="w-100">
-                                    <a href="#" class="nav-link px-0"> <span class="d-none d-sm-inline">Ver</span></a>
+                                    <a href="#" class="nav-link px-0"> <span class="d-none d-sm-inline"><i class="fas fa-list-ul"></i> Ver</span></a>
                                 </li>
                                 <li>
-                                    <a href="#" class="nav-link px-0"> <span class="d-none d-sm-inline">Crear</span></a>
+                                    <a href="#" class="nav-link px-0"> <span class="d-none d-sm-inline"><i class="fas fa-plus"></i> Crear</span></a>
                                 </li>
                             </ul>
                         </li>
                         <li>
                             <a href="#submenu3" data-bs-toggle="collapse" class="nav-link px-0 align-middle ">
-                                <i class="fs-4 bi-bootstrap"></i> <span class="ms-1 d-none d-sm-inline">Materias</span></a>
+                                <i class="fas fa-book-open"></i></i> <span class="ms-1 d-none d-sm-inline">Materias</span></a>
                             <ul class="collapse nav flex-column ms-1" id="submenu3" data-bs-parent="#menu">
                                 <li class="w-100">
-                                    <a href="#" class="nav-link px-0"> <span class="d-none d-sm-inline">Ver</span></a>
+                                    <a href="#" class="nav-link px-0"> <span class="d-none d-sm-inline"><i class="fas fa-list-ul"></i> Ver</span></a>
                                 </li>
                                 <li>
-                                    <a href="#" class="nav-link px-0"> <span class="d-none d-sm-inline">Crear</span></a>
+                                    <a href="#" class="nav-link px-0"> <span class="d-none d-sm-inline"><i class="fas fa-plus"></i> Crear</span></a>
                                 </li>
                             </ul>
                         </li>
-                        <!--<li>
+                        <li>
+                            <a href="#submenu4" data-bs-toggle="collapse" class="nav-link px-0 align-middle ">
+                                <i class="fas fa-users"></i></i> <span class="ms-1 d-none d-sm-inline">Usuarios</span></a>
+                            <ul class="collapse nav flex-column ms-1" id="submenu4" data-bs-parent="#menu">
+                                <li class="w-100">
+                                    <a href="#" class="nav-link px-0"> <span class="d-none d-sm-inline"><i class="fas fa-list-ul"></i> Ver</span></a>
+                                </li>
+                                <li>
+                                    <a href="#" class="nav-link px-0"> <span class="d-none d-sm-inline"><i class="fas fa-plus"></i> Crear</span></a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li>
                             <a href="#" class="nav-link px-0 align-middle">
                                 <i class="fs-4 bi-people"></i> <span class="ms-1 d-none d-sm-inline">Customers</span> </a>
                         </li>-->
@@ -86,12 +114,12 @@
                         <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
                             <!--<img src="https://github.com/mdo.png" alt="hugenerd" width="30" height="30" class="rounded-circle">-->
                             <i class="far fa-user"></i>
-                            <span class="d-none d-sm-inline mx-1"> User</span>
+                            <span class="d-none d-sm-inline mx-1"> Aldo Luría</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark text-small shadow">
-                            <li><a class="dropdown-item" href="#">New project...</a></li>
-                            <li><a class="dropdown-item" href="#">Settings</a></li>
-                            <li><a class="dropdown-item" href="#">Profile</a></li>
+                            <li><a class="dropdown-item" href="#">Papelera</a></li>
+                            <li><a class="dropdown-item" href="#">Configuración</a></li>
+                            <li><a class="dropdown-item" href="#">Perfil</a></li>
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
@@ -101,8 +129,6 @@
                 </div>
             </div>
             <div class="col py-3">
-                <h4>{{titulo}}</h4>
-                <hr>
                 {% block body %}
                 {% endblock %}
             </div>
