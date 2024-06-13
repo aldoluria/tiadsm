@@ -2,5 +2,9 @@
 .venv
 
 #ignora las imagenes de los alumnos
-/app/static/img/uploads/alumnos
-/app/static/img/uploads/profesores
+/app/static/img/uploads/alumnos/*.jpg
+/app/static/img/uploads/alumnos/*.png
+/app/static/img/uploads/alumnos/*.jpeg
+/app/static/img/uploads/profesores/*.jpg
+/app/static/img/uploads/profesores/*.png
+/app/static/img/uploads/profesores/*.jpeg

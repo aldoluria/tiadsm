@@ -8,19 +8,22 @@
 
 <form method="post" action="{{url_for('alumnos_crear')}}" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
-    <label>Archivo:</label>
-        <input type="file" name="Foto" required accept="image/png, .jpeg, .jpg">
-    <div class="form-group">
+
+    <div class="form-group mb-2">
+      <label for="formFile" class="form-label">Foto de perfil</label>
+      <input class="form-control" type="file" id="formFile" name="Foto" required accept="image/png, .jpeg, .jpg">
+    </div>
+    <div class="form-group mb-2">
       <label for="nombre">Nombre(s)</label>
       <input type="text" class="form-control" id="nombre" placeholder="Nombre(s)" name="nombre">
     </div>
     
-    <div class="form-group">
+    <div class="form-group mb-2">
       <label for="paterno">Apellido Paterno</label>
       <input type="text" class="form-control" id="paterno" placeholder="Apellido Paterno" name="paterno">
     </div>
 
-    <div class="form-group">
+    <div class="form-group mb-3">
       <label for="materno">Apellido Materno</label>
       <input type="text" class="form-control" id="materno" placeholder="Apellido Materno" name="materno">
     </div>

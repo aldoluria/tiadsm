@@ -13,3 +13,10 @@ a.layout_admin:focus{
   color: #17a5de;
 }
 
+a.ver_detalles{
+  color: black;
+}
+a.ver_detalles:hover{
+  color: blue;
+  font-weight: bold;
+}
