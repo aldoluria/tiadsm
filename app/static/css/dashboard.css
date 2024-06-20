@@ -20,3 +20,7 @@ a.ver_detalles:hover{
   color: blue;
   font-weight: bold;
 }
+
+label{
+  font-weight:bold;
+}
