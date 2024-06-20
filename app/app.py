@@ -50,7 +50,7 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-#@custom_tags.app_template_global()
+@custom_tags.app_template_global()
 def listar_profesores():
     conn = get_db_connection()
     cur = conn.cursor()
@@ -65,11 +65,11 @@ app.secret_key='mysecretkey'
 @app.route("/")
 def index():
     titulo = "Plataforma de cursos"
-    return render_template('index.html', titulo=titulo, profesores=listar_profesores())
+    return render_template('index.html', titulo=titulo)
 
 @app.route("/about-us")
 def about_us():
-    return render_template('about_us.html', profesores=listar_profesores())
+    return render_template('about_us.html')
 
 @app.route("/dashboard")
 def dashboard():
