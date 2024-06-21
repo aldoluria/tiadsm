@@ -65,16 +65,16 @@ app.secret_key='mysecretkey'
 @app.route("/")
 def index():
     titulo = "Plataforma de cursos"
-    return render_template('index.html', titulo=titulo)
+    return render_template('public/index.html', titulo=titulo)
 
 @app.route("/about-us")
 def about_us():
-    return render_template('about_us.html')
+    return render_template('public/about_us.html')
 
 @app.route("/dashboard")
 def dashboard():
     titulo = "Panel de Administración"
-    return render_template('dashboard.html', titulo=titulo)
+    return render_template('admin/dashboard.html', titulo=titulo)
 
 #------------------------- DASHBOARD -------------------------
 #------------------------- CRUD Alumnos -------------------------
@@ -88,12 +88,12 @@ def alumnos_dashboard():
     alumnos = cur.fetchall()
     cur.close()
     conn.close()
-    return render_template('alumnos.html', titulo=titulo,alumnos=alumnos)
+    return render_template('admin/alumnos/alumnos.html', titulo=titulo,alumnos=alumnos)
 
 @app.route("/dashboard/alumnos/nuevo")
 def alumnos_nuevo():
     titulo = "Alumno nuevo"
-    return render_template('alumnos_nuevo.html', titulo=titulo)
+    return render_template('admin/alumnos/crear.html', titulo=titulo)
 
 @app.route('/dashboard/alumnos/crear', methods=('GET', 'POST'))
 def alumnos_crear():
@@ -146,7 +146,7 @@ def alumnos_detalles(id):
     conn.commit()
     cur.close()
     conn.close()
-    return render_template('alumnos_detalles.html', titulo=titulo, alumno=alumno[0])
+    return render_template('admin/alumnos/detalles.html', titulo=titulo, alumno=alumno[0])
 
 @app.route('/dashboard/alumnos/editar/<string:id>')
 def alumnos_editar(id):
@@ -158,7 +158,7 @@ def alumnos_editar(id):
     conn.commit()
     cur.close()
     conn.close()
-    return render_template('alumnos_editar.html', titulo=titulo, alumno=alumno[0])
+    return render_template('admin/alumnos/editar.html', titulo=titulo, alumno=alumno[0])
 
 @app.route('/dashboard/alumnos/actualizar/<string:id>', methods=['POST'])
 def alumnos_actualizar(id):
@@ -229,12 +229,13 @@ def alumnos_actualizar_foto(id):
 @app.route('/dashboard/alumnos/eliminar/<string:id>')
 def alumnos_eliminar(id):
     activo = False
+    situacion = False
     editado = datetime.now()
     conn = get_db_connection()
     cur = conn.cursor()
     #sql="DELETE FROM alumnos WHERE id_alumno={0}".format(id)
-    sql="UPDATE alumnos SET activo=%s, editado=%s WHERE id_alumno=%s"
-    valores=(activo,editado,id)
+    sql="UPDATE alumnos SET activo=%s, editado=%s, situacion=%s WHERE id_alumno=%s"
+    valores=(activo,editado,situacion,id)
     cur.execute(sql,valores)
     conn.commit()
     cur.close()
@@ -269,11 +270,199 @@ def alumnos_eliminar_foto(foto,id):
 
 #------------------------- CRUD Profesores -------------------------
 
+@app.route("/dashboard/profesores")
+def profesores_dashboard():
+    titulo = "Profesores"
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM profesores WHERE activo=true ORDER BY id_profesor DESC;')
+    profesores = cur.fetchall()
+    cur.close()
+    conn.close()
+    return render_template('admin/profesores/profesores.html', titulo=titulo,profesores=profesores)
+
+@app.route("/dashboard/profesores/nuevo")
+def profesores_nuevo():
+    titulo = "Profesor nuevo"
+    return render_template('admin/profesores/crear.html', titulo=titulo)
+
+@app.route('/dashboard/profesores/crear', methods=('GET', 'POST'))
+def profesores_crear():
+    if request.method == 'POST':
+        nombre = request.form['nombre']
+        paterno = request.form['paterno']
+        materno = request.form['materno']
+        activo = True
+        creado = datetime.now()
+        editado = datetime.now()
+        situacion = True
+        imagen=request.files['Foto']
+
+        if imagen and allowed_file(imagen.filename):
+            # Verificar si el archivo con el mismo nombre ya existe
+            # Creamos un nombre dinamico para la foto de perfil con el nombre del profesor y una cadena aleatoria
+            cadena_aleatoria = my_random_string(10)
+            filename = paterno + "_" + materno + "_" + nombre + "_" + str(creado)[:10] + "_" + cadena_aleatoria + "_" + secure_filename(imagen.filename)
+            file_path = os.path.join(ruta_profesores, filename)
+            if os.path.exists(file_path):
+                flash('Error: ¡Un archivo con el mismo nombre ya existe! Intente renombrar su archivo.')
+                return redirect(url_for('profesores_dashboard'))
+            # Guardar el archivo y registrar en la base de datos
+            imagen.save(file_path)
+
+            conn = get_db_connection()
+            cur = conn.cursor()
+            sql="INSERT INTO profesores (nombre, apellido_paterno, apellido_materno, activo, creado, editado, imagen, situacion) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+            valores=(nombre, paterno, materno, activo, creado, editado,filename,situacion)
+            cur.execute(sql,valores)
+            conn.commit()
+            cur.close()
+            conn.close()
+
+            flash('¡Profesor agregado exitosamente!')
+            return redirect(url_for('profesores_dashboard'))
+        else:
+            flash('Error: ¡Extensión de archivo invalida! Intente con una imagen valida PNG, JPG o JPEG')
+            return redirect(url_for('profesores_dashboard'))
+
+    return redirect(url_for('profesores_nuevo'))
+
+@app.route('/dashboard/profesores/<string:id>')
+def profesores_detalles(id):
+    titulo = "Detalles del Profesor"
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM profesores WHERE id_profesor={0}'.format(id))
+    profesor=cur.fetchall()
+    conn.commit()
+    cur.close()
+    conn.close()
+    return render_template('admin/profesores/detalles.html', titulo=titulo, profesor=profesor[0])
+
+@app.route('/dashboard/profesores/editar/<string:id>')
+def profesores_editar(id):
+    titulo = "Editar Profesor"
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM profesores WHERE id_profesor={0}'.format(id))
+    profesor=cur.fetchall()
+    conn.commit()
+    cur.close()
+    conn.close()
+    return render_template('admin/profesores/editar.html', titulo=titulo, profesor=profesor[0])
+
+@app.route('/dashboard/profesores/actualizar/<string:id>', methods=['POST'])
+def profesores_actualizar(id):
+    if request.method == 'POST':
+        nombre = request.form['nombre']
+        paterno = request.form['paterno']
+        materno = request.form['materno']
+        situacion = request.form['estado']
+        editado = datetime.now()
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        sql="UPDATE profesores SET nombre=%s, apellido_paterno=%s, apellido_materno=%s , situacion=%s, editado=%s WHERE id_profesor=%s"        
+        valores=(nombre, paterno, materno, situacion, editado, id)
+        cur.execute(sql,valores)
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        flash('¡Profesor modificado exitosamente!')
+    return redirect(url_for('profesores_dashboard'))
+
+@app.route('/dashboard/profesores/actualizar/foto/<string:id>', methods=['POST'])
+def profesores_actualizar_foto(id):
+    if request.method == 'POST':
+        imagen=request.files['Foto']
+        nombre = request.form['nombre']
+        paterno = request.form['paterno']
+        materno = request.form['materno']
+        foto_anterior = request.form['anterior']
+        foto_anterior = os.path.join(ruta_profesores,foto_anterior)
+        editado = datetime.now()
+
+        if imagen and allowed_file(imagen.filename):
+            # Verificar si el archivo con el mismo nombre ya existe
+            # Creamos un nombre dinamico para la foto de perfil con el nombre del profesor y una cadena aleatoria
+            cadena_aleatoria = my_random_string(10)
+            filename = paterno + "_" + materno + "_" + nombre + "_" + str(editado)[:10] + "_" + cadena_aleatoria + "_" + secure_filename(imagen.filename)
+            file_path = os.path.join(ruta_profesores, filename)
+            if os.path.exists(file_path):
+                flash('Error: ¡Un archivo con el mismo nombre ya existe! Intente renombrar su archivo.')
+                return redirect(url_for('profesor_dashboard'))
+            # Guardar el archivo y registrar en la base de datos
+            imagen.save(file_path)
+
+            conn = get_db_connection()
+            cur = conn.cursor()
+            sql=" UPDATE profesores SET editado=%s, imagen=%s WHERE id_profesor=%s"
+            valores=(editado,filename,id)
+            cur.execute(sql,valores)
+            conn.commit()
+            cur.close()
+            conn.close()
+            
+            #Eliminar foto de perfil antigua
+            if request.form['anterior'] != "":
+                if os.path.exists(foto_anterior):
+                    os.remove(foto_anterior)
+
+            flash('¡Foto de perfil actualizada exitosamente!')
+            return redirect(url_for('profesores_editar', id=id))
+        else:
+            flash('Error: ¡Extensión de archivo invalida! Intente con una imagen valida PNG, JPG o JPEG')
+            return redirect(url_for('profesores_editar', id=id))
+
+    return redirect(url_for('profesores_dashboard'))
+
+@app.route('/dashboard/profesores/eliminar/<string:id>')
+def profesores_eliminar(id):
+    activo = False
+    situacion = False
+    editado = datetime.now()
+    conn = get_db_connection()
+    cur = conn.cursor()
+    #sql="DELETE FROM profesores WHERE id_profesor={0}".format(id)
+    sql="UPDATE profesores SET activo=%s, editado=%s, situacion=%s WHERE id_profesor=%s"
+    valores=(activo,editado,situacion,id)
+    cur.execute(sql,valores)
+    conn.commit()
+    cur.close()
+    conn.close()
+    flash('¡Profesor  eliminado correctamente!')
+    return redirect(url_for('profesores_dashboard'))
+
+@app.route('/dashboard/profesores/eliminar/foto/<string:foto>/<string:id>')
+def profesores_eliminar_foto(foto,id):
+    foto_anterior = os.path.join(ruta_profesores,foto)
+    editado = datetime.now()
+    conn = get_db_connection()
+    cur = conn.cursor()
+    #sql="DELETE FROM profesores WHERE id_profesor={0}".format(id)
+    sql="UPDATE profesores SET imagen=%s, editado=%s WHERE id_profesor=%s"
+    valores=("",editado,id)
+    cur.execute(sql,valores)
+    conn.commit()
+    cur.close()
+    conn.close()
+    #Eliminar foto de perfil antigua
+    print(foto_anterior)
+    if foto != "":
+        if os.path.exists(foto_anterior):
+            os.remove(foto_anterior)
+            flash('¡Foto eliminada correctamente!')
+            return redirect(url_for('profesores_editar', id=id))
+    else:
+        flash('Error: ¡No se puede ejecutar esta acción!')
+        return redirect(url_for('profesores_editar', id=id))
+
 #------------------------- CRUD Materias -------------------------
 
 #------------------------- CRUD Grupos -------------------------
 def pagina_no_encontrada(error):
-    return render_template('404.html')
+    return render_template('error/404.html')
 
 def acceso_no_autorizado(error):
     return redirect(url_for('login'))

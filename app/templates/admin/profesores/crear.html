@@ -1,4 +1,4 @@
-{% extends './layout_admin.html' %}
+{% extends './admin/layout_admin.html' %}
 
 {% block title %} {{titulo}} {% endblock %}
 
@@ -6,7 +6,7 @@
 
 <div class="col"><h2>{{titulo}}</h2></div>
 
-<form method="post" action="{{url_for('alumnos_crear')}}" enctype="multipart/form-data">
+<form method="post" action="{{url_for('profesores_crear')}}" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
 
     <div class="form-group mb-3">
@@ -41,7 +41,7 @@
       </button>
     </div>
     <div class="col">
-      <a class="btn btn-danger float-start" href="{{url_for('alumnos_dashboard')}}">Cancelar</a>
+      <a class="btn btn-danger float-start" href="{{url_for('profesores_dashboard')}}">Cancelar</a>
     </div>
   </div>
 

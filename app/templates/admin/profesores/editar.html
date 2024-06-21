@@ -1,4 +1,4 @@
-{% extends './layout_admin.html' %}
+{% extends './admin/layout_admin.html' %}
 
 {% block title %} {{titulo}} {% endblock %}
 
@@ -19,10 +19,10 @@
     <div class="row justify-content-center">
         <div class="col-7 col-sm-5 col-md-4 col-lg-3">
             <div class="ratio ratio-1x1 bg-success overflow-hidden" style="border-radius: 50%;">
-              {% if alumno.7 == null or alumno.7 == "" %}
+              {% if profesor.7 == null or profesor.7 == "" %}
                 <img src="{{ url_for('static', filename='img/user.jpg')}}">
               {% else %}
-                <img src="{{ url_for('static', filename='img/uploads/alumnos/') + alumno.7 }}">
+                <img src="{{ url_for('static', filename='img/uploads/profesores/') + profesor.7 }}">
               {% endif %}
             </div>
         </div>
@@ -30,22 +30,22 @@
   </div>
   
   <div class="row mb-3">
-    {% if alumno.7 == "" or alumno.7 == Null %}
-      <div class="col d-flex justify-content-center"><a class="btn btn-outline-primary" data-bs-toggle="collapse" href="#cambiarFoto" role="button" aria-expanded="false" aria-controls="collapseExample">Cambiar foto</a></div>
+    {% if profesor.7 == "" or profesor.7 == Null %}
+      <div class="col d-flex justify-content-center"><a class="btn btn-outline-primary" data-bs-toggle="collapse" href="#cambiarFoto" role="button" aria-expanded="false" aria-controls="collapseExample">Añadir foto</a></div>
     {% else %}
       <div class="col"><a class="btn btn-outline-primary float-end" data-bs-toggle="collapse" href="#cambiarFoto" role="button" aria-expanded="false" aria-controls="collapseExample">Cambiar foto</a></div>
-      <div class="col"> <a class="btn btn-outline-danger float-start" href="{{url_for('alumnos_eliminar_foto', id=alumno[0], foto=alumno[7])}}">Eliminar foto</a></div>
+      <div class="col"> <a class="btn btn-outline-danger float-start" href="{{url_for('profesores_eliminar_foto', id=profesor[0], foto=profesor[7])}}">Eliminar foto</a></div>
     {% endif %}
 
   </div>
 
   <div class="collapse" id="cambiarFoto">
-    <form method="post" action="{{url_for('alumnos_actualizar_foto', id=alumno[0])}}" enctype="multipart/form-data">
+    <form method="post" action="{{url_for('profesores_actualizar_foto', id=profesor[0])}}" enctype="multipart/form-data">
       <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
-      <input type="hidden" name="nombre" value="{{alumno.1}}">
-      <input type="hidden" name="paterno" value="{{alumno.2}}">
-      <input type="hidden" name="materno" value="{{alumno.3}}">
-      <input type="hidden" name="anterior" value="{{alumno.7}}">
+      <input type="hidden" name="nombre" value="{{profesor.1}}">
+      <input type="hidden" name="paterno" value="{{profesor.2}}">
+      <input type="hidden" name="materno" value="{{profesor.3}}">
+      <input type="hidden" name="anterior" value="{{profesor.7}}">
 
       <div class="form-group mb-3">
         <label for="formFile" class="form-label">Foto de perfil</label>
@@ -58,25 +58,25 @@
     </form>
   </div>
 
-  <form method="post" action="{{url_for('alumnos_actualizar', id=alumno[0])}}">
+  <form method="post" action="{{url_for('profesores_actualizar', id=profesor[0])}}">
   <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
 
   <div class="form-group mb-3">
     <label  for="nombre">Nombre(s)</label>
-    <input type="text" class="form-control" id="nombre" placeholder="Nombre(s)" name="nombre" value="{{alumno.1}}">
+    <input type="text" class="form-control" id="nombre" placeholder="Nombre(s)" name="nombre" value="{{profesor.1}}">
   </div>
 
   <div class="row">
     <div class="col-md-6 col-xs-12 mb-3">
       <div class="form-group">
         <label for="paterno">Apellido Paterno</label>
-        <input type="text" class="form-control" id="paterno" placeholder="Apellido Paterno" name="paterno" value="{{alumno.2}}">
+        <input type="text" class="form-control" id="paterno" placeholder="Apellido Paterno" name="paterno" value="{{profesor.2}}">
       </div>
     </div>
     <div class="col-md-6 col-xs-12 mb-3">
       <div class="form-group">
         <label for="materno">Apellido Materno</label>
-        <input type="text" class="form-control" id="materno" placeholder="Apellido Materno" name="materno" value="{{alumno.3}}">
+        <input type="text" class="form-control" id="materno" placeholder="Apellido Materno" name="materno" value="{{profesor.3}}">
       </div>
     </div>
   </div>
@@ -84,13 +84,13 @@
   <label for="materno">Situación</label>
   <select class="form-select" aria-label="Default select example" name="estado">
     <option selected
-      {% if alumno.8==true %}
-        value="True">Regular
+      {% if profesor.8==true %}
+        value="True">Vigente
       {% else %}
       value="False">Baja
       {% endif %}
     </option>
-    <option value="True">Regular</option>
+    <option value="True">Vigente</option>
     <option value="False">Baja</option>
   </select>
 
@@ -101,7 +101,7 @@
     </button>
     </div>
     <div class="col">
-      <a class="btn btn-danger float-start" href="{{url_for('alumnos_dashboard')}}">Atras</a>
+      <a class="btn btn-danger float-start" href="{{url_for('profesores_dashboard')}}">Atras</a>
     </div>
   </div>
         

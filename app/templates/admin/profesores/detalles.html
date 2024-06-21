@@ -1,0 +1,39 @@
+{% extends './admin/layout_admin.html' %}
+
+{% block title %} {{titulo}} {% endblock %}
+
+{% block body %}
+
+  <div class="card mb-3" style="max-width: 540px;">
+    <div class="row g-0">
+      <div class="col-md-4">
+        <img src="{{ url_for('static', filename='img/uploads/profesores/') + profesor.7 }}" class="img-fluid rounded-start" alt="...">
+      </div>
+      <div class="col-md-8">
+        <div class="card-body">
+          <h4 class="card-title">{{profesor.1}} {{profesor.2}} {{profesor.3}}</h4>
+          <strong>Situación: </strong>
+            {% if profesor.8==true %}
+            <p style="color: green;">Vigente</p>
+            {% else %}
+            <p style="color: red;">Baja</p>
+            {% endif %}
+          <p class="card-text"><small class="text-muted">Última edición: {{profesor.6}}</small></p>
+          <p class="card-text"><small class="text-muted">Fecha de creación: {{profesor.5}}</small></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mt-3">
+    <div class="col">
+      <a href="{{url_for('profesores_editar', id=profesor[0])}}" class="btn btn-primary float-end">Editar</a>
+    </div>
+    <div class="col">
+      <a href="{{ url_for('profesores_dashboard') }}" class="btn btn-danger float-start">Atras</a>
+    </div>
+  </div>
+
+
+
+{% endblock %}
