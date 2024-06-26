@@ -1,0 +1,31 @@
+{% extends './admin/layout_admin.html' %}
+
+{% block title %} {{titulo}} {% endblock %}
+
+{% block body %}
+
+<div class="card">
+  <div class="card-body">
+    <blockquote class="blockquote mb-0">
+      <p>{{materia.1}}</p>
+      <footer class="blockquote-footer"> <cite title="Source Title">{{materia.6}} {{materia.7}} {{materia.8}}</cite></footer>
+    </blockquote>
+    <br>
+    <p class="card-text"><small class="text-muted">Última edición: {{materia.5}}</small></p>
+    <p class="card-text"><small class="text-muted">Fecha de creación: {{materia.4[:10]}}</small></p>
+  </div>
+</div>
+
+
+  <div class="row mt-3">
+    <div class="col">
+      <a href="{{url_for('materias_editar', id=materia[0])}}" class="btn btn-primary float-end">Editar</a>
+    </div>
+    <div class="col">
+      <a href="{{ url_for('materias_dashboard') }}" class="btn btn-danger float-start">Atras</a>
+    </div>
+  </div>
+
+
+
+{% endblock %}

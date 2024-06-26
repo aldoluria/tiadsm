@@ -1,0 +1,53 @@
+{% extends './admin/layout_admin.html' %}
+
+{% block title %} {{titulo}} {% endblock %}
+
+{% block body %}
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{% if "Error" in message %}danger {% elif "Advertencia" in message %}warning {% else %}success {% endif %} alert-dismissible fade show" role="alert">
+        <strong>{{message}}</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+  <form method="post" action="{{url_for('materias_actualizar', id=materia[0])}}">
+  <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+
+  <div class="form-group mb-3">
+    <label  for="nombre">Nombre de la materia</label>
+    <input type="text" class="form-control" id="nombre" placeholder="Nombre" name="nombre" value="{{materia.1}}">
+  </div>
+
+  <label for="materno">Profesor</label>
+  <select class="form-select" aria-label="Default select example" name="id_profesor">
+    <option selected value="{{materia.2}}">{{materia.6}} {{materia.7}} {{materia.8}}</option>
+
+    {% set profesores = listar_profesores() %}
+    {% if profesores %}
+      {% for profesor in profesores %}
+      <option value="{{profesor.0}}">{{profesor.1}} {{profesor.2}} {{profesor.3}}</option>
+      {%endfor%}
+    {% else %}
+      <option>No hay registros. Crea un registro antes para continuar.</a></option>
+    {% endif %}
+    
+  </select>
+
+  <div class="row mt-3 mb-3">
+    <div class="col">
+      <button class="btn btn-primary float-end" type="submit">
+        Guardar
+    </button>
+    </div>
+    <div class="col">
+      <a class="btn btn-danger float-start" href="{{url_for('materias_dashboard')}}">Atras</a>
+    </div>
+  </div>
+        
+</form>
+{% endblock %}

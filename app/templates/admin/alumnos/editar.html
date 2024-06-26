@@ -81,18 +81,35 @@
     </div>
   </div>
 
-  <label for="materno">Situación</label>
-  <select class="form-select" aria-label="Default select example" name="estado">
-    <option selected
-      {% if alumno.8==true %}
-        value="True">Regular
+  <div class="form-group mb-3">
+    <label for="materno">Situación</label>
+    <select class="form-select" aria-label="Default select example" name="estado">
+      <option selected
+        {% if alumno.8==true %}
+          value="True">Regular
+        {% else %}
+        value="False">Baja
+        {% endif %}
+      </option>
+      <option value="True">Regular</option>
+      <option value="False">Baja</option>
+    </select>
+  </div>
+
+  <div class="form-group mb-3">
+    <label for="id_grupo">Grupo</label>
+    <select class="form-select" aria-label="Default select example" name="id_grupo">
+      <option selected value="{{alumno.9}}">{{alumno.10}}°{{alumno.11}} ({{alumno.12}}) en {{alumno.14}}</option>
+      {% set grupos = listar_grupos() %}
+      {% if grupos %}
+        {% for grupo in grupos %}
+        <option value="{{grupo.0}}">{{grupo.1}}°{{grupo.2}} ({{grupo.4}}) {{grupo.3}}</option>
+        {%endfor%}
       {% else %}
-      value="False">Baja
+        <option>No hay registros. Crea un registro antes para continuar.</a></option>
       {% endif %}
-    </option>
-    <option value="True">Regular</option>
-    <option value="False">Baja</option>
-  </select>
+    </select>
+  </div>
 
   <div class="row mt-3 mb-3">
     <div class="col">

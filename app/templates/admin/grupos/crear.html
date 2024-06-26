@@ -1,0 +1,79 @@
+{% extends './admin/layout_admin.html' %}
+
+{% block title %} {{titulo}} {% endblock %}
+
+{% block body %}
+
+<div class="col"><h2>{{titulo}}</h2></div>
+
+<form method="post" action="{{url_for('grupos_crear')}}" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+
+  <div class="row">
+    <div class="col-md-4 col-sm-6 col-xs-12 mb-3">
+      <div class="form-group">
+        <label for="grado">Grado</label>
+        <input type="text" class="form-control" id="grado" placeholder="Grado" name="grado">
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6 col-xs-12 mb-3">
+      <div class="form-group">
+        <label for="grupo">Grupo</label>
+        <input type="text" class="form-control" id="grupo" placeholder="Grupo" name="grupo">
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-12 col-xs-12 mb-3">
+      <div class="form-group">
+        <label for="anio">Año</label>
+        <input type="text" class="form-control" id="anio" placeholder="Año" name="anio">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-group mb-3">
+    <label for="profesor">Profesor</label>
+    <select class="form-select" aria-label="Default select example" name="id_profesor">
+      <option selected>-- Selecciona un profesor --</option>
+      {% set profesores = listar_profesores() %}
+      {% if profesores %}
+        {% for profesor in profesores %}
+        <option value="{{profesor.0}}">{{profesor.1}} {{profesor.2}} {{profesor.3}}</option>
+        {%endfor%}
+      {% else %}
+        <option>No hay registros. Crea un registro antes para continuar.</a></option>
+      {% endif %}
+    </select>
+  </div>
+
+  <div class="form-group mb-3">
+    <label for="carreras">Carreras</label>
+    <select class="form-select" aria-label="Default select example" name="id_carrera">
+      <option selected>-- Selecciona una carrera --</option>
+      {% set carreras = listar_carreras() %}
+      {% if carreras %}
+        {% for carrera in carreras %}
+        <option value="{{carrera.0}}">{{carrera.1}}</option>
+        {%endfor%}
+      {% else %}
+        <option>No hay registros. Crea un registro antes para continuar.</a></option>
+      {% endif %}
+    </select>
+  </div>
+
+  <div class="row mb-3">
+    <div class="col">
+      <button class="btn btn-primary float-end" type="submit">
+        Guardar
+      </button>
+    </div>
+    <div class="col">
+      <a class="btn btn-danger float-start" href="{{url_for('grupos_dashboard')}}">Cancelar</a>
+    </div>
+  </div>
+
+</form>
+
+
+{% endblock %}

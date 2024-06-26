@@ -12,6 +12,7 @@
       <div class="col-md-8">
         <div class="card-body">
           <h4 class="card-title">{{alumno.1}} {{alumno.2}} {{alumno.3}}</h4>
+          <p><a href="{{url_for('grupos_detalles', id=alumno[9])}}">{{alumno.10}}{{alumno.11}} ({{alumno.12}})</a> en <a href="{{url_for('carreras_detalles', id=alumno[13])}}">{{alumno.14}}</a></p>
           <strong>Situación: </strong>
             {% if alumno.8==true %}
             <p style="color: green;">Regular</p>
@@ -19,7 +20,7 @@
             <p style="color: red;">Baja</p>
             {% endif %}
           <p class="card-text"><small class="text-muted">Última edición: {{alumno.6}}</small></p>
-          <p class="card-text"><small class="text-muted">Fecha de creación: {{alumno.5}}</small></p>
+          <p class="card-text"><small class="text-muted">Fecha de creación: {{alumno.5[:10]}}</small></p>
         </div>
       </div>
     </div>

@@ -1,0 +1,31 @@
+{% extends './admin/layout_admin.html' %}
+
+{% block title %} {{titulo}} {% endblock %}
+
+{% block body %}
+
+<div class="card">
+  <div class="card-body">
+    <blockquote class="blockquote mb-0">
+      <p>{{grupo.1}}{{grupo.2}}</p>
+      <footer class="blockquote-footer"> <cite title="Source Title">{{grupo[9]}} ({{grupo.3}})</cite></footer>
+    </blockquote>
+    <br>
+    <p class="card-text"><small class="text-muted">Última edición: {{grupo.8}}</small></p>
+    <p class="card-text"><small class="text-muted">Fecha de creación: {{grupo.7[:10]}}</small></p>
+  </div>
+</div>
+
+
+  <div class="row mt-3">
+    <div class="col">
+      <a href="{{url_for('grupos_editar', id=grupo[0])}}" class="btn btn-primary float-end">Editar</a>
+    </div>
+    <div class="col">
+      <a href="{{ url_for('grupos_dashboard') }}" class="btn btn-danger float-start">Atras</a>
+    </div>
+  </div>
+
+
+
+{% endblock %}
