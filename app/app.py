@@ -1,10 +1,10 @@
 import os
 import uuid
 import psycopg2
-import arrow
+from psycopg2.extras import RealDictCursor
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
-from flask import Flask, render_template, url_for, redirect, request, flash, Blueprint
+from flask import Flask, render_template, url_for, redirect, request, flash, Blueprint, jsonify
 from flask_wtf.csrf import CSRFProtect
 
 #Creamos una tag con la ayuda de Blueprint y la iniciamos en nuestro proyecto (al crear nuestra applicación)
@@ -96,6 +96,37 @@ def index():
 def about_us():
     return render_template('public/about_us.html')
 
+@app.route('/items')
+def get_items():
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 2, type=int)
+
+    offset = (page - 1) * per_page
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    cursor.execute('SELECT COUNT(*) FROM alumnos')
+    total_items = cursor.fetchone()['count']
+
+    cursor.execute('SELECT * FROM alumnos LIMIT %s OFFSET %s', (per_page, offset))
+    items = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    total_pages = (total_items + per_page - 1) // per_page
+
+    return render_template(
+        'items.html',
+        items=items,
+        page=page,
+        per_page=per_page,
+        total_items=total_items,
+        total_pages=total_pages
+    )
+
+
 #------------------------- DASHBOARD -------------------------
 
 @app.route("/dashboard")
@@ -108,13 +139,32 @@ def dashboard():
 @app.route("/dashboard/alumnos")
 def alumnos_dashboard():
     titulo = "Alumnos"
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 1, type=int)
+    offset = (page - 1) * per_page
     conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute('SELECT A.*, G.grado, G.grupo, G.anio, C.id_carrera, C.nombre FROM alumnos AS A INNER JOIN grupos AS G ON A.id_grupo = G.id_grupo INNER JOIN carreras AS C on G.id_carrera = C.id_carrera  WHERE A.activo=true ORDER BY id_alumno DESC;')
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute('SELECT COUNT(*) FROM alumnos AS A INNER JOIN grupos AS G ON A.id_grupo = G.id_grupo INNER JOIN carreras AS C on G.id_carrera = C.id_carrera  WHERE A.activo=true;')
+    total_items = cur.fetchone()['count']
+    cur.execute('SELECT A.*, G.grado, G.grupo, G.anio, C.id_carrera, C.nombre AS carrera FROM alumnos AS A INNER JOIN grupos AS G ON A.id_grupo = G.id_grupo INNER JOIN carreras AS C on G.id_carrera = C.id_carrera  WHERE A.activo=true ORDER BY A.id_alumno DESC  LIMIT %s OFFSET %s;', (per_page, offset))
     alumnos = cur.fetchall()
     cur.close()
     conn.close()
-    return render_template('admin/alumnos/alumnos.html', titulo=titulo,alumnos=alumnos)
+    total_pages = (total_items + per_page - 1) // per_page
+    return render_template('admin/alumnos/alumnos.html', titulo=titulo,alumnos=alumnos,page=page,
+        per_page=per_page,
+        total_items=total_items,
+        total_pages=total_pages)
+
+    response = {
+        'items': items,
+        'page': page,
+        'per_page': per_page,
+        'total_items': total_items,
+        'total_pages': total_pages,
+    }
+
+    return jsonify(response)
 
 @app.route("/dashboard/alumnos/nuevo")
 def alumnos_nuevo():

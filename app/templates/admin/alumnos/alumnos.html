@@ -35,18 +35,18 @@
             {% if alumnos %}
             {% for alumno in alumnos %}
                 <tr>
-                    <td class="text-center"><a class="btn btn-sm btn-primary" href="{{url_for('alumnos_editar', id=alumno[0])}}"><i class="fas fa-edit"></i></a></td>
-                    <td><a href="{{url_for('alumnos_detalles', id=alumno[0])}}">{{ alumno[1] }} {{ alumno[2] }} {{ alumno[3] }}</a></td>
-                    {% if alumno.8==true %}
+                    <td class="text-center"><a class="btn btn-sm btn-primary" href="{{url_for('alumnos_editar', id=alumno.id_alumno)}}"><i class="fas fa-edit"></i></a></td>
+                    <td><a href="{{url_for('alumnos_detalles', id=alumno.id_alumno)}}">{{ alumno.nombre }} {{ alumno.apellido_paterno }} {{ alumno.apellido_materno }}</a></td>
+                    {% if alumno.situacion==true %}
                     <td class="text-success">Regular </td>
                         {% else %}
                     <td class="text-danger">Baja</td>
                     {% endif %}
-                    <td class="text-center"><a href="{{url_for('grupos_detalles', id=alumno[9])}}">{{alumno.10}}{{alumno.11}}</a></td>
-                    <td class="text-center">{{alumno.12}}</td>
-                    <td><a href="{{url_for('carreras_detalles', id=alumno[13])}}">{{alumno.14}}</a></td>
+                    <td class="text-center"><a href="{{url_for('grupos_detalles', id=alumno.id_grupo)}}">{{alumno.grado}}{{alumno.grupo}}</a></td>
+                    <td class="text-center">{{alumno.anio}}</td>
+                    <td><a href="{{url_for('carreras_detalles', id=alumno.id_carrera)}}">{{alumno.carrera}}</a></td>
                     <td class="text-center">
-                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#staticBackdrop-{{alumno.0}}">
+                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#staticBackdrop-{{alumno.id_alumno}}">
                             <i class="fas fa-trash-alt"></i>
                         </button>
                     </td>
@@ -64,25 +64,43 @@
 
     <nav aria-label="Page navigation example">
         <ul class="pagination justify-content-center">
+          {% if page > 1 %}
           <li class="page-item">
-            <a class="page-link" href="#" aria-label="Previous">
+            <a class="page-link" href="{{url_for('alumnos_dashboard')}}?page={{ page - 1 }}&per_page={{ per_page }}" aria-label="Previous">
               <span aria-hidden="true">&laquo;</span>
             </a>
           </li>
-          <li class="page-item"><a class="page-link" href="#">1</a></li>
-          <li class="page-item"><a class="page-link" href="#">2</a></li>
-          <li class="page-item"><a class="page-link" href="#">3</a></li>
+            {% if page != 1 and page != 2 %}
+            <li class="page-item"><a class="page-link" href="{{url_for('alumnos_dashboard')}}">1</a></li>
+              {% if page != 3 %}
+              <li class="page-item"><a class="page-link disabled" >...</a></li>
+              {% endif %}
+            {% endif %}
+            <li class="page-item"><a class="page-link" href="{{url_for('alumnos_dashboard')}}?page={{ page - 1 }}&per_page={{ per_page }}">{{page-1}}</a></li>
+            {% endif %}
+
+          <li class="page-item"><a class="page-link active" href="#">{{page}}</a></li>
+          
+          {% if page < total_pages %}
+          <li class="page-item"><a class="page-link" href="{{url_for('alumnos_dashboard')}}?page={{ page + 1 }}&per_page={{ per_page }}">{{page+1}}</a></li>
+            {% if page != total_pages and page != total_pages-1 %}
+              {% if page != total_pages-2 %}
+              <li class="page-item"><a class="page-link disabled" >...</a></li>
+              {% endif %}
+              <li class="page-item"><a class="page-link" href="{{url_for('alumnos_dashboard')}}?page={{ total_pages }}&per_page={{ per_page }}">{{total_pages}}</a></li>
+            {% endif %}
           <li class="page-item">
-            <a class="page-link" href="#" aria-label="Next">
+            <a class="page-link" href="{{url_for('alumnos_dashboard')}}?page={{ page + 1 }}&per_page={{ per_page }}" aria-label="Next">
               <span aria-hidden="true">&raquo;</span>
             </a>
           </li>
+          {% endif %}
         </ul>
       </nav>
     
     {% if alumnos %}
         {% for alumno in alumnos %}
-        <div class="modal fade" id="staticBackdrop-{{alumno.0}}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal fade" id="staticBackdrop-{{alumno.id_alumno}}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
             <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -90,11 +108,11 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                ¿Deseas eliminar a <strong>{{ alumno[1] }} {{ alumno[2] }} {{ alumno[3] }}</strong>?
+                ¿Deseas eliminar a <strong>{{ alumno.nombre }} {{ alumno.apellido_paterno }} {{ alumno.apellido_materno }}</strong>?
                 </div>
                 <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <a class="btn btn-danger" href="{{url_for('alumnos_eliminar', id=alumno[0])}}" class="btn-delete"><i class="fas fa-trash-alt"></i> Eliminar</a>
+                <a class="btn btn-danger" href="{{url_for('alumnos_eliminar', id=alumno.id_alumno)}}" class="btn-delete"><i class="fas fa-trash-alt"></i> Eliminar</a>
                 </div>
             </div>
             </div>
