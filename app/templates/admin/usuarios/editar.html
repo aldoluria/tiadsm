@@ -1,0 +1,46 @@
+{% extends './admin/layout_admin.html' %}
+
+{% block title %} {{titulo}} {% endblock %}
+
+{% block body %}
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{% if "Error" in message %}danger {% elif "Advertencia" in message %}warning {% else %}success {% endif %} alert-dismissible fade show" role="alert">
+        <strong>{{message}}</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+  <form method="post" action="{{url_for('usuarios_actualizar', id=usuario[0])}}">
+  <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+
+  <div class="form-group mb-3">
+    <label  for="nombre">Nombre de usuario</label>
+    <input type="text" class="form-control" id="nombre" placeholder="Nombre" name="nombre" value="{{usuario.1}}">
+  </div>
+
+  <div class="form-group mb-3">
+    <label for="materno">Tipo de usuario</label>
+    <select class="form-select" aria-label="Default select example" name="tipo_usuario">
+      <option value="{{usuario.3}}" selected>{% if usuario.3==true %}Administrador{% else %}Usuario{% endif %}</option>
+      <option value="{% if usuario.3==true %}False{% else %}True{% endif %}">{% if usuario.3==true %}Usuario{% else %}Administrador{% endif %}</option>
+    </select>
+  </div>
+
+  <div class="row mt-3 mb-3">
+    <div class="col">
+      <button class="btn btn-primary float-end" type="submit">
+        Guardar
+    </button>
+    </div>
+    <div class="col">
+      <a class="btn btn-danger float-start" href="{{url_for('usuarios_dashboard')}}">Atras</a>
+    </div>
+  </div>
+        
+</form>
+{% endblock %}

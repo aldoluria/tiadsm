@@ -7,6 +7,12 @@ from werkzeug.utils import secure_filename
 from flask import Flask, render_template, url_for, redirect, request, flash, Blueprint, jsonify
 from flask_wtf.csrf import CSRFProtect
 
+from werkzeug.security import generate_password_hash
+from flask_login import LoginManager, login_user, logout_user, login_required
+
+from Models.ModelUser import ModuleUser
+from Models.entities.user import User
+
 #Creamos una tag con la ayuda de Blueprint y la iniciamos en nuestro proyecto (al crear nuestra applicación)
 custom_tags = Blueprint('custom_tags', __name__)
 
@@ -33,7 +39,18 @@ def get_db_connection():
     except psycopg2.Error as error:
         print(f"Error al conectar a la base de datos: {error}")
         return None
-    
+
+Login_manager_app=LoginManager(app)
+
+@Login_manager_app.user_loader
+def load_user(idusuarios):
+    return ModuleUser.get_by_id(get_db_connection(),idusuarios)
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return render_template('login.html')
+
 def my_random_string(string_length=10):
     """Regresa una cadena aleatoria de la longitud de string_length."""
     random = str(uuid.uuid4()) # Conviente el formato UUID a una cadena de Python.
@@ -96,6 +113,32 @@ def index():
 def about_us():
     return render_template('public/about_us.html')
 
+#------------------------- Paginador -------------------------
+
+def paginador(sql_count,sql_lim,in_page,per_pages):
+    page = request.args.get('page', in_page, type=int)
+    per_page = request.args.get('per_page', per_pages, type=int)
+
+    offset = (page - 1) * per_page
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    cursor.execute(sql_count)
+    total_items = cursor.fetchone()['count']
+
+    cursor.execute(sql_lim, (per_page, offset))
+    items = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    total_pages = (total_items + per_page - 1) // per_page
+
+    return items, page, per_page, total_items, total_pages
+
+#------------------------- Paginador Muestra -------------------------
+
 @app.route('/items')
 def get_items():
     page = request.args.get('page', 1, type=int)
@@ -139,32 +182,15 @@ def dashboard():
 @app.route("/dashboard/alumnos")
 def alumnos_dashboard():
     titulo = "Alumnos"
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 1, type=int)
-    offset = (page - 1) * per_page
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    cur.execute('SELECT COUNT(*) FROM alumnos AS A INNER JOIN grupos AS G ON A.id_grupo = G.id_grupo INNER JOIN carreras AS C on G.id_carrera = C.id_carrera  WHERE A.activo=true;')
-    total_items = cur.fetchone()['count']
-    cur.execute('SELECT A.*, G.grado, G.grupo, G.anio, C.id_carrera, C.nombre AS carrera FROM alumnos AS A INNER JOIN grupos AS G ON A.id_grupo = G.id_grupo INNER JOIN carreras AS C on G.id_carrera = C.id_carrera  WHERE A.activo=true ORDER BY A.id_alumno DESC  LIMIT %s OFFSET %s;', (per_page, offset))
-    alumnos = cur.fetchall()
-    cur.close()
-    conn.close()
-    total_pages = (total_items + per_page - 1) // per_page
-    return render_template('admin/alumnos/alumnos.html', titulo=titulo,alumnos=alumnos,page=page,
-        per_page=per_page,
-        total_items=total_items,
-        total_pages=total_pages)
-
-    response = {
-        'items': items,
-        'page': page,
-        'per_page': per_page,
-        'total_items': total_items,
-        'total_pages': total_pages,
-    }
-
-    return jsonify(response)
+    sql_count = 'SELECT COUNT(*) FROM alumnos AS A INNER JOIN grupos AS G ON A.id_grupo = G.id_grupo INNER JOIN carreras AS C on G.id_carrera = C.id_carrera  WHERE A.activo=true;'
+    sql_lim = 'SELECT A.*, G.grado, G.grupo, G.anio, C.id_carrera, C.nombre AS carrera FROM alumnos AS A INNER JOIN grupos AS G ON A.id_grupo = G.id_grupo INNER JOIN carreras AS C on G.id_carrera = C.id_carrera  WHERE A.activo=true ORDER BY A.id_alumno DESC  LIMIT %s OFFSET %s;'
+    paginado = paginador(sql_count,sql_lim,1,15)
+    return render_template('admin/alumnos/alumnos.html', titulo=titulo,
+                            alumnos=paginado[0],
+                            page=paginado[1],
+                            per_page=paginado[2],
+                            total_items=paginado[3],
+                            total_pages=paginado[4])
 
 @app.route("/dashboard/alumnos/nuevo")
 def alumnos_nuevo():
@@ -551,7 +577,7 @@ def materias_dashboard():
 
 @app.route("/dashboard/materias/nuevo")
 def materias_nuevo():
-    titulo = "Materia nuevo"
+    titulo = "Materia nueva"
     return render_template('admin/materias/crear.html', titulo=titulo)
 
 @app.route('/dashboard/materias/crear', methods=('GET', 'POST'))
@@ -650,7 +676,7 @@ def carreras_dashboard():
 
 @app.route("/dashboard/carreras/nuevo")
 def carreras_nuevo():
-    titulo = "Carrera nuevo"
+    titulo = "Carrera nueva"
     return render_template('admin/carreras/crear.html', titulo=titulo)
 
 @app.route('/dashboard/carreras/crear', methods=('GET', 'POST'))
@@ -836,6 +862,136 @@ def grupos_eliminar(id):
     conn.close()
     flash('¡Grupo eliminada correctamente!')
     return redirect(url_for('grupos_dashboard'))
+
+#------------------------- CRUD Usuarios -------------------------
+
+@app.route("/dashboard/usuarios")
+def usuarios_dashboard():
+    titulo = "Usuarios"
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM usuarios WHERE activo=true ORDER BY id_usuario DESC;')
+    usuarios = cur.fetchall()
+    cur.close()
+    conn.close()
+    return render_template('admin/usuarios/usuarios.html', titulo=titulo,usuarios=usuarios)
+
+@app.route("/dashboard/usuarios/nuevo")
+def usuarios_nuevo():
+    titulo = "Usuario nuevo"
+    return render_template('admin/usuarios/crear.html', titulo=titulo)
+
+@app.route('/dashboard/usuarios/crear', methods=('GET', 'POST'))
+def usuarios_crear():
+    if request.method == 'POST':
+        username=request.form['username']
+        password=request.form['password']
+        Pass=generate_password_hash(password)
+        tipo_usuario=request.form['tipo_usuario']
+        activo = True
+        creado = datetime.now()
+        editado = datetime.now()
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        sql="INSERT INTO usuarios (username, password, tipo_usuario, activo, creado, editado) VALUES (%s, %s, %s, %s, %s, %s)"
+        valores=(username, Pass, tipo_usuario, activo, creado, editado)
+        cur.execute(sql,valores)
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        flash('¡Usuario agregado exitosamente!')
+        return redirect(url_for('usuarios_dashboard'))
+    return redirect(url_for('usuarios_nuevo'))
+
+@app.route('/dashboard/usuarios/<string:id>')
+def usuarios_detalles(id):
+    titulo = "Detalles del usuario"
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM usuarios WHERE id_usuario={0};'.format(id))
+    usuario=cur.fetchall()
+    conn.commit()
+    cur.close()
+    conn.close()
+    return render_template('admin/usuarios/detalles.html', titulo=titulo, usuario=usuario[0])
+
+@app.route('/dashboard/usuarios/editar/<string:id>')
+def usuarios_editar(id):
+    titulo = "Editar usuario"
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM usuarios WHERE id_usuario={0};'.format(id))
+    usuario=cur.fetchall()
+    conn.commit()
+    cur.close()
+    conn.close()
+    return render_template('admin/usuarios/editar.html', titulo=titulo, usuario=usuario[0])
+
+@app.route('/dashboard/usuarios/actualizar/<string:id>', methods=['POST'])
+def usuarios_actualizar(id):
+    if request.method == 'POST':
+        nombre = request.form['nombre']
+        tipo_usuario=request.form['tipo_usuario']
+        editado = datetime.now()
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        sql="UPDATE usuarios SET username=%s, tipo_usuario=%s, editado=%s WHERE id_usuario=%s"        
+        valores=(nombre, tipo_usuario, editado, id)
+        cur.execute(sql,valores)
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        flash('¡Usuario modificado exitosamente!')
+    return redirect(url_for('usuarios_dashboard'))
+
+@app.route('/dashboard/usuarios/eliminar/<string:id>')
+def usuarios_eliminar(id):
+    activo = False
+    editado = datetime.now()
+    conn = get_db_connection()
+    cur = conn.cursor()
+    #sql="DELETE FROM usuarios WHERE id_usuario={0}".format(id)
+    sql="UPDATE usuarios SET activo=%s, editado=%s WHERE id_usuario=%s"
+    valores=(activo,editado,id)
+    cur.execute(sql,valores)
+    conn.commit()
+    cur.close()
+    conn.close()
+    flash('¡Usuario eliminada correctamente!')
+    return redirect(url_for('usuarios_dashboard'))
+
+#------------------------- Apartado Login -------------------------
+
+@app.route('/login')
+def login():
+    return render_template('login.html')
+
+@app.route('/loguear', methods=['POST'])
+def loguear():
+    if request.method == 'POST':
+        Username=request.form['Username']
+        Password=request.form['Password']
+        user=User(0,Username,Password,None)
+        loged_user=ModuleUser.login(get_db_connection(),user)
+
+        if loged_user!= None:
+            if loged_user.password:
+                login_user(loged_user)
+                return redirect(url_for('usuarios_Ver'))
+            else:
+                flash('Nombre de usuario y/o Contraseña incorrecta.')
+                return render_template('login.html')
+        else:
+            flash('Nombre de usuario y/o Contraseña incorrecta.')
+            return render_template('login.html')
+    else:
+            flash('Nombre de usuario y/o Contraseña incorrecta.')
+            return render_template('login.html')
+
 
 #------------------------- Error Handlers -------------------------
 def pagina_no_encontrada(error):
