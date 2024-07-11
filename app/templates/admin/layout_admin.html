@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
+    {% block redirect %}{% endblock %}
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -119,16 +120,16 @@
                         <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
                             <!--<img src="https://github.com/mdo.png" alt="hugenerd" width="30" height="30" class="rounded-circle">-->
                             <i class="far fa-user"></i>
-                            <span class="d-none d-sm-inline mx-1"> Aldo Luría</span>
+                            <span class="d-none d-sm-inline mx-1">{{current_user.username|truncate(12)}} {{current_user.tipo}}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark text-small shadow">
                             <li><a class="dropdown-item" href="#">Papelera</a></li>
                             <li><a class="dropdown-item" href="#">Configuración</a></li>
-                            <li><a class="dropdown-item" href="#">Perfil</a></li>
+                            <li><a class="dropdown-item" href="{{url_for('perfil')}}">Perfil</a></li>
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
-                            <li><a class="dropdown-item" href="#">Sign out</a></li>
+                            <li><a class="dropdown-item" href="{{url_for('logout')}}">Sign out</a></li>
                         </ul>
                     </div>
                 </div>

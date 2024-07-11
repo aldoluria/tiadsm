@@ -1,0 +1,48 @@
+{% extends './admin/layout_admin.html' %}
+
+{% block title %} {{titulo}} {% endblock %}
+
+{% block body %}
+
+
+  <form method="post" action="#">
+  <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+
+  <div class="form-group mb-3">
+    <label  for="nombre">Nombre de usuario</label>
+    <input type="text" class="form-control" id="nombre" placeholder="Nombre(s)" name="nombre" value="{{current_user.username}}" disabled>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6 col-xs-12 mb-3">
+      <div class="form-group">
+        <label for="paterno">Tipo</label>
+        <input type="text" class="form-control" id="paterno" placeholder="Apellido Paterno" name="paterno" value="{% if current_user.tipo == True %} Administrador {% else %} Usuario {% endif %}" disabled>
+      </div>
+    </div>
+    <div class="col-md-6 col-xs-12 mb-3">
+      <div class="form-group">
+        <label for="materno">Activo</label>
+        <input type="text" class="form-control" id="materno" placeholder="Apellido Materno" name="materno" value="{% if current_user.activo == True %} Si {% else %} No {% endif %}" disabled>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6 col-xs-12 mb-3">
+      <div class="form-group">
+        <label for="paterno">Fecha de creación</label>
+        <input type="text" class="form-control" id="paterno" placeholder="Apellido Paterno" name="paterno" value="{{current_user.creado|string}}" disabled>
+      </div>
+    </div>
+    <div class="col-md-6 col-xs-12 mb-3">
+      <div class="form-group">
+        <label for="materno">Ultima edición</label>
+        <input type="text" class="form-control" id="materno" placeholder="Apellido Materno" name="materno" value="{{current_user.editado|string}}" disabled>
+      </div>
+    </div>
+  </div>
+        
+</form>
+
+{% endblock %}

@@ -4,13 +4,16 @@ from flask_login import UserMixin
 class User(UserMixin):
 
     def get_id(self):
-        return(self.idusuarios)
+        return(self.id_usuario)
 
-    def __init__(self,idusuarios, username, password, tipo) -> None:
-        self.idusuarios=idusuarios
+    def __init__(self,id_usuario, username, password, tipo, activo, creado, editado) -> None:
+        self.id_usuario=id_usuario
         self.username=username
         self.password=password
         self.tipo=tipo
+        self.activo=activo
+        self.creado=creado
+        self.editado=editado
 
     @classmethod
     def check_password(self, hashed_password, password):

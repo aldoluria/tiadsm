@@ -8,7 +8,7 @@ from flask import Flask, render_template, url_for, redirect, request, flash, Blu
 from flask_wtf.csrf import CSRFProtect
 
 from werkzeug.security import generate_password_hash
-from flask_login import LoginManager, login_user, logout_user, login_required
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 
 from Models.ModelUser import ModuleUser
 from Models.entities.user import User
@@ -45,11 +45,6 @@ Login_manager_app=LoginManager(app)
 @Login_manager_app.user_loader
 def load_user(idusuarios):
     return ModuleUser.get_by_id(get_db_connection(),idusuarios)
-
-@app.route('/logout')
-def logout():
-    logout_user()
-    return render_template('login.html')
 
 def my_random_string(string_length=10):
     """Regresa una cadena aleatoria de la longitud de string_length."""
@@ -171,20 +166,23 @@ def get_items():
 
 
 #------------------------- DASHBOARD -------------------------
-
 @app.route("/dashboard")
+@login_required
 def dashboard():
     titulo = "Panel de Administración"
+    print('-------------------------')
+    #print((current_user.tipo))
     return render_template('admin/dashboard.html', titulo=titulo)
 
 #------------------------- CRUD Alumnos -------------------------
 
 @app.route("/dashboard/alumnos")
+@login_required
 def alumnos_dashboard():
     titulo = "Alumnos"
-    sql_count = 'SELECT COUNT(*) FROM alumnos AS A INNER JOIN grupos AS G ON A.id_grupo = G.id_grupo INNER JOIN carreras AS C on G.id_carrera = C.id_carrera  WHERE A.activo=true;'
+    sql_count = 'SELECT COUNT(*) FROM alumnos WHERE activo=true;'
     sql_lim = 'SELECT A.*, G.grado, G.grupo, G.anio, C.id_carrera, C.nombre AS carrera FROM alumnos AS A INNER JOIN grupos AS G ON A.id_grupo = G.id_grupo INNER JOIN carreras AS C on G.id_carrera = C.id_carrera  WHERE A.activo=true ORDER BY A.id_alumno DESC  LIMIT %s OFFSET %s;'
-    paginado = paginador(sql_count,sql_lim,1,15)
+    paginado = paginador(sql_count,sql_lim,1,1)
     return render_template('admin/alumnos/alumnos.html', titulo=titulo,
                             alumnos=paginado[0],
                             page=paginado[1],
@@ -193,11 +191,13 @@ def alumnos_dashboard():
                             total_pages=paginado[4])
 
 @app.route("/dashboard/alumnos/nuevo")
+@login_required
 def alumnos_nuevo():
     titulo = "Alumno nuevo"
     return render_template('admin/alumnos/crear.html', titulo=titulo)
 
 @app.route('/dashboard/alumnos/crear', methods=('GET', 'POST'))
+@login_required
 def alumnos_crear():
     if request.method == 'POST':
         nombre = request.form['nombre']
@@ -240,32 +240,38 @@ def alumnos_crear():
     return redirect(url_for('alumnos_nuevo'))
 
 @app.route('/dashboard/alumnos/<string:id>')
+@login_required
 def alumnos_detalles(id):
     titulo = "Detalles del Alumno"
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute('SELECT A.*, G.grado, G.grupo, G.anio, C.id_carrera, C.nombre FROM alumnos AS A INNER JOIN grupos AS G ON A.id_grupo = G.id_grupo INNER JOIN carreras AS C on G.id_carrera = C.id_carrera WHERE id_alumno={0}'.format(id))
-    alumno=cur.fetchall()
+    alumno=cur.fetchone()
     conn.commit()
     cur.close()
     conn.close()
-    return render_template('admin/alumnos/detalles.html', titulo=titulo, alumno=alumno[0])
+    return render_template('admin/alumnos/detalles.html', titulo=titulo, alumno=alumno)
 
 @app.route('/dashboard/alumnos/editar/<string:id>')
+@login_required
 def alumnos_editar(id):
-    titulo = "Editar Alumno"
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute('SELECT A.*, G.grado, G.grupo, G.anio, C.id_carrera, C.nombre FROM alumnos AS A INNER JOIN grupos AS G ON A.id_grupo = G.id_grupo INNER JOIN carreras AS C on G.id_carrera = C.id_carrera WHERE id_alumno={0}'.format(id))
-    alumno=cur.fetchall()
-    conn.commit()
-    cur.close()
-    conn.close()
-    return render_template('admin/alumnos/editar.html', titulo=titulo, alumno=alumno[0])
+    if current_user.tipo == True:
+        titulo = "Editar Alumno"
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute('SELECT A.*, G.grado, G.grupo, G.anio, C.id_carrera, C.nombre FROM alumnos AS A INNER JOIN grupos AS G ON A.id_grupo = G.id_grupo INNER JOIN carreras AS C on G.id_carrera = C.id_carrera WHERE id_alumno={0}'.format(id))
+        alumno=cur.fetchone()
+        conn.commit()
+        cur.close()
+        conn.close()
+        return render_template('admin/alumnos/editar.html', titulo=titulo, alumno=alumno)
+    else:
+        return redirect(url_for('alumnos_dashboard'))
 
 @app.route('/dashboard/alumnos/actualizar/<string:id>', methods=['POST'])
+@login_required
 def alumnos_actualizar(id):
-    if request.method == 'POST':
+    if request.method == 'POST' and current_user.tipo == True:
         nombre = request.form['nombre']
         paterno = request.form['paterno']
         materno = request.form['materno']
@@ -286,8 +292,9 @@ def alumnos_actualizar(id):
     return redirect(url_for('alumnos_dashboard'))
 
 @app.route('/dashboard/alumnos/actualizar/foto/<string:id>', methods=['POST'])
+@login_required
 def alumnos_actualizar_foto(id):
-    if request.method == 'POST':
+    if request.method == 'POST' and current_user.tipo == True:
         imagen=request.files['Foto']
         nombre = request.form['nombre']
         paterno = request.form['paterno']
@@ -331,50 +338,59 @@ def alumnos_actualizar_foto(id):
     return redirect(url_for('alumnos_dashboard'))
 
 @app.route('/dashboard/alumnos/eliminar/<string:id>')
+@login_required
 def alumnos_eliminar(id):
-    activo = False
-    situacion = False
-    editado = datetime.now()
-    conn = get_db_connection()
-    cur = conn.cursor()
-    #sql="DELETE FROM alumnos WHERE id_alumno={0}".format(id)
-    sql="UPDATE alumnos SET activo=%s, editado=%s, situacion=%s WHERE id_alumno=%s"
-    valores=(activo,editado,situacion,id)
-    cur.execute(sql,valores)
-    conn.commit()
-    cur.close()
-    conn.close()
-    flash('¡Alumno  eliminado correctamente!')
-    return redirect(url_for('alumnos_dashboard'))
+    if current_user.tipo == True:
+        activo = False
+        situacion = False
+        editado = datetime.now()
+        conn = get_db_connection()
+        cur = conn.cursor()
+        #sql="DELETE FROM alumnos WHERE id_alumno={0}".format(id)
+        sql="UPDATE alumnos SET activo=%s, editado=%s, situacion=%s WHERE id_alumno=%s"
+        valores=(activo,editado,situacion,id)
+        cur.execute(sql,valores)
+        conn.commit()
+        cur.close()
+        conn.close()
+        flash('¡Alumno  eliminado correctamente!')
+        return redirect(url_for('alumnos_dashboard'))
+    else:
+        return redirect(url_for('alumnos_dashboard'))
 
 @app.route('/dashboard/alumnos/eliminar/foto/<string:foto>/<string:id>')
+@login_required
 def alumnos_eliminar_foto(foto,id):
-    foto_anterior = os.path.join(ruta_alumnos,foto)
-    editado = datetime.now()
-    conn = get_db_connection()
-    cur = conn.cursor()
-    #sql="DELETE FROM alumnos WHERE id_alumno={0}".format(id)
-    sql="UPDATE alumnos SET imagen=%s, editado=%s WHERE id_alumno=%s"
-    valores=("",editado,id)
-    cur.execute(sql,valores)
-    conn.commit()
-    cur.close()
-    conn.close()
-    #Eliminar foto de perfil antigua
-    print(foto_anterior)
-    if foto != "":
-        if os.path.exists(foto_anterior):
-            os.remove(foto_anterior)
-            flash('¡Foto eliminada correctamente!')
+    if current_user.tipo == True:
+        foto_anterior = os.path.join(ruta_alumnos,foto)
+        editado = datetime.now()
+        conn = get_db_connection()
+        cur = conn.cursor()
+        #sql="DELETE FROM alumnos WHERE id_alumno={0}".format(id)
+        sql="UPDATE alumnos SET imagen=%s, editado=%s WHERE id_alumno=%s"
+        valores=("",editado,id)
+        cur.execute(sql,valores)
+        conn.commit()
+        cur.close()
+        conn.close()
+        #Eliminar foto de perfil antigua
+        print(foto_anterior)
+        if foto != "":
+            if os.path.exists(foto_anterior):
+                os.remove(foto_anterior)
+                flash('¡Foto eliminada correctamente!')
+                return redirect(url_for('alumnos_editar', id=id))
+        else:
+            flash('Error: ¡No se puede ejecutar esta acción!')
             return redirect(url_for('alumnos_editar', id=id))
     else:
-        flash('Error: ¡No se puede ejecutar esta acción!')
-        return redirect(url_for('alumnos_editar', id=id))
+        return redirect(url_for('alumnos_dashboard'))
 
 
 #------------------------- CRUD Profesores -------------------------
 
 @app.route("/dashboard/profesores")
+@login_required
 def profesores_dashboard():
     titulo = "Profesores"
     conn = get_db_connection()
@@ -386,11 +402,13 @@ def profesores_dashboard():
     return render_template('admin/profesores/profesores.html', titulo=titulo,profesores=profesores)
 
 @app.route("/dashboard/profesores/nuevo")
+@login_required
 def profesores_nuevo():
     titulo = "Profesor nuevo"
     return render_template('admin/profesores/crear.html', titulo=titulo)
 
 @app.route('/dashboard/profesores/crear', methods=('GET', 'POST'))
+@login_required
 def profesores_crear():
     if request.method == 'POST':
         nombre = request.form['nombre']
@@ -432,30 +450,33 @@ def profesores_crear():
     return redirect(url_for('profesores_nuevo'))
 
 @app.route('/dashboard/profesores/<string:id>')
+@login_required
 def profesores_detalles(id):
     titulo = "Detalles del Profesor"
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute('SELECT * FROM profesores WHERE id_profesor={0}'.format(id))
-    profesor=cur.fetchall()
+    profesor=cur.fetchone()
     conn.commit()
     cur.close()
     conn.close()
-    return render_template('admin/profesores/detalles.html', titulo=titulo, profesor=profesor[0])
+    return render_template('admin/profesores/detalles.html', titulo=titulo, profesor=profesor)
 
 @app.route('/dashboard/profesores/editar/<string:id>')
+@login_required
 def profesores_editar(id):
     titulo = "Editar Profesor"
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute('SELECT * FROM profesores WHERE id_profesor={0}'.format(id))
-    profesor=cur.fetchall()
+    profesor=cur.fetchone()
     conn.commit()
     cur.close()
     conn.close()
-    return render_template('admin/profesores/editar.html', titulo=titulo, profesor=profesor[0])
+    return render_template('admin/profesores/editar.html', titulo=titulo, profesor=profesor)
 
 @app.route('/dashboard/profesores/actualizar/<string:id>', methods=['POST'])
+@login_required
 def profesores_actualizar(id):
     if request.method == 'POST':
         nombre = request.form['nombre']
@@ -477,6 +498,7 @@ def profesores_actualizar(id):
     return redirect(url_for('profesores_dashboard'))
 
 @app.route('/dashboard/profesores/actualizar/foto/<string:id>', methods=['POST'])
+@login_required
 def profesores_actualizar_foto(id):
     if request.method == 'POST':
         imagen=request.files['Foto']
@@ -522,6 +544,7 @@ def profesores_actualizar_foto(id):
     return redirect(url_for('profesores_dashboard'))
 
 @app.route('/dashboard/profesores/eliminar/<string:id>')
+@login_required
 def profesores_eliminar(id):
     activo = False
     situacion = False
@@ -539,6 +562,7 @@ def profesores_eliminar(id):
     return redirect(url_for('profesores_dashboard'))
 
 @app.route('/dashboard/profesores/eliminar/foto/<string:foto>/<string:id>')
+@login_required
 def profesores_eliminar_foto(foto,id):
     foto_anterior = os.path.join(ruta_profesores,foto)
     editado = datetime.now()
@@ -565,6 +589,7 @@ def profesores_eliminar_foto(foto,id):
 #------------------------- CRUD Materias -------------------------
 
 @app.route("/dashboard/materias")
+@login_required
 def materias_dashboard():
     titulo = "Materias"
     conn = get_db_connection()
@@ -576,11 +601,13 @@ def materias_dashboard():
     return render_template('admin/materias/materias.html', titulo=titulo,materias=materias)
 
 @app.route("/dashboard/materias/nuevo")
+@login_required
 def materias_nuevo():
     titulo = "Materia nueva"
     return render_template('admin/materias/crear.html', titulo=titulo)
 
 @app.route('/dashboard/materias/crear', methods=('GET', 'POST'))
+@login_required
 def materias_crear():
     if request.method == 'POST':
         nombre = request.form['nombre']
@@ -603,30 +630,33 @@ def materias_crear():
     return redirect(url_for('materias_nuevo'))
 
 @app.route('/dashboard/materias/<string:id>')
+@login_required
 def materias_detalles(id):
     titulo = "Detalles de la Materia"
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute('SELECT M.*, P.nombre, P.apellido_paterno, P.apellido_paterno FROM materias AS M INNER JOIN profesores AS P ON M.id_profesor = P.id_profesor  WHERE M.activo=true and P.activo=true and id_materia={0};'.format(id))
-    materia=cur.fetchall()
+    materia=cur.fetchone()
     conn.commit()
     cur.close()
     conn.close()
-    return render_template('admin/materias/detalles.html', titulo=titulo, materia=materia[0])
+    return render_template('admin/materias/detalles.html', titulo=titulo, materia=materia)
 
 @app.route('/dashboard/materias/editar/<string:id>')
+@login_required
 def materias_editar(id):
     titulo = "Editar Materia"
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute('SELECT M.*, P.nombre, P.apellido_paterno, P.apellido_paterno FROM materias AS M INNER JOIN profesores AS P ON M.id_profesor = P.id_profesor  WHERE M.activo=true and P.activo=true and id_materia={0};'.format(id))
-    materia=cur.fetchall()
+    materia=cur.fetchone()
     conn.commit()
     cur.close()
     conn.close()
-    return render_template('admin/materias/editar.html', titulo=titulo, materia=materia[0])
+    return render_template('admin/materias/editar.html', titulo=titulo, materia=materia)
 
 @app.route('/dashboard/materias/actualizar/<string:id>', methods=['POST'])
+@login_required
 def materias_actualizar(id):
     if request.method == 'POST':
         nombre = request.form['nombre']
@@ -646,6 +676,7 @@ def materias_actualizar(id):
     return redirect(url_for('materias_dashboard'))
 
 @app.route('/dashboard/materias/eliminar/<string:id>')
+@login_required
 def materias_eliminar(id):
     activo = False
     editado = datetime.now()
@@ -664,6 +695,7 @@ def materias_eliminar(id):
 #------------------------- CRUD Carreras -------------------------
 
 @app.route("/dashboard/carreras")
+@login_required
 def carreras_dashboard():
     titulo = "Carreras"
     conn = get_db_connection()
@@ -675,11 +707,13 @@ def carreras_dashboard():
     return render_template('admin/carreras/carreras.html', titulo=titulo,carreras=carreras)
 
 @app.route("/dashboard/carreras/nuevo")
+@login_required
 def carreras_nuevo():
     titulo = "Carrera nueva"
     return render_template('admin/carreras/crear.html', titulo=titulo)
 
 @app.route('/dashboard/carreras/crear', methods=('GET', 'POST'))
+@login_required
 def carreras_crear():
     if request.method == 'POST':
         nombre = request.form['nombre']
@@ -701,30 +735,33 @@ def carreras_crear():
     return redirect(url_for('carreras_nuevo'))
 
 @app.route('/dashboard/carreras/<string:id>')
+@login_required
 def carreras_detalles(id):
     titulo = "Detalles de la Carrera"
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute('SELECT * FROM carreras WHERE id_carrera={0};'.format(id))
-    carrera=cur.fetchall()
+    carrera=cur.fetchone()
     conn.commit()
     cur.close()
     conn.close()
-    return render_template('admin/carreras/detalles.html', titulo=titulo, carrera=carrera[0])
+    return render_template('admin/carreras/detalles.html', titulo=titulo, carrera=carrera)
 
 @app.route('/dashboard/carreras/editar/<string:id>')
+@login_required
 def carreras_editar(id):
     titulo = "Editar Carrera"
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute('SELECT * FROM carreras WHERE id_carrera={0};'.format(id))
-    carrera=cur.fetchall()
+    carrera=cur.fetchone()
     conn.commit()
     cur.close()
     conn.close()
-    return render_template('admin/carreras/editar.html', titulo=titulo, carrera=carrera[0])
+    return render_template('admin/carreras/editar.html', titulo=titulo, carrera=carrera)
 
 @app.route('/dashboard/carreras/actualizar/<string:id>', methods=['POST'])
+@login_required
 def carreras_actualizar(id):
     if request.method == 'POST':
         nombre = request.form['nombre']
@@ -743,6 +780,7 @@ def carreras_actualizar(id):
     return redirect(url_for('carreras_dashboard'))
 
 @app.route('/dashboard/carreras/eliminar/<string:id>')
+@login_required
 def carreras_eliminar(id):
     activo = False
     editado = datetime.now()
@@ -761,6 +799,7 @@ def carreras_eliminar(id):
 #------------------------- CRUD Grupos -------------------------
 
 @app.route("/dashboard/grupos")
+@login_required
 def grupos_dashboard():
     titulo = "Grupos"
     conn = get_db_connection()
@@ -772,11 +811,13 @@ def grupos_dashboard():
     return render_template('admin/grupos/grupos.html', titulo=titulo,grupos=grupos)
 
 @app.route("/dashboard/grupos/nuevo")
+@login_required
 def grupos_nuevo():
     titulo = "Grupo nuevo"
     return render_template('admin/grupos/crear.html', titulo=titulo)
 
 @app.route('/dashboard/grupos/crear', methods=('GET', 'POST'))
+@login_required
 def grupos_crear():
     if request.method == 'POST':
         grado = request.form['grado']
@@ -802,30 +843,33 @@ def grupos_crear():
     return redirect(url_for('grupos_nuevo'))
 
 @app.route('/dashboard/grupos/<string:id>')
+@login_required
 def grupos_detalles(id):
     titulo = "Detalles del Grupo"
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute('SELECT G.*, C.nombre, P.nombre, P.apellido_paterno, P.apellido_materno FROM grupos AS G INNER JOIN profesores AS P ON G.id_profesor = P.id_profesor INNER JOIN carreras AS C ON G.id_carrera = C.id_carrera WHERE G.activo=true and P.activo=true and id_grupo={0} ORDER BY id_grupo DESC;'.format(id))
-    grupo=cur.fetchall()
+    grupo=cur.fetchone()
     conn.commit()
     cur.close()
     conn.close()
-    return render_template('admin/grupos/detalles.html', titulo=titulo, grupo=grupo[0])
+    return render_template('admin/grupos/detalles.html', titulo=titulo, grupo=grupo)
 
 @app.route('/dashboard/grupos/editar/<string:id>')
+@login_required
 def grupos_editar(id):
     titulo = "Editar Grupo"
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute('SELECT G.*, C.nombre, P.nombre, P.apellido_paterno, P.apellido_materno FROM grupos AS G INNER JOIN profesores AS P ON G.id_profesor = P.id_profesor INNER JOIN carreras AS C ON G.id_carrera = C.id_carrera WHERE G.activo=true and P.activo=true and id_grupo={0} ORDER BY id_grupo DESC;'.format(id))
-    grupo=cur.fetchall()
+    grupo=cur.fetchone()
     conn.commit()
     cur.close()
     conn.close()
-    return render_template('admin/grupos/editar.html', titulo=titulo, grupo=grupo[0])
+    return render_template('admin/grupos/editar.html', titulo=titulo, grupo=grupo)
 
 @app.route('/dashboard/grupos/actualizar/<string:id>', methods=['POST'])
+@login_required
 def grupos_actualizar(id):
     if request.method == 'POST':
         grado = request.form['grado']
@@ -848,6 +892,7 @@ def grupos_actualizar(id):
     return redirect(url_for('grupos_dashboard'))
 
 @app.route('/dashboard/grupos/eliminar/<string:id>')
+@login_required
 def grupos_eliminar(id):
     activo = False
     editado = datetime.now()
@@ -866,6 +911,7 @@ def grupos_eliminar(id):
 #------------------------- CRUD Usuarios -------------------------
 
 @app.route("/dashboard/usuarios")
+@login_required
 def usuarios_dashboard():
     titulo = "Usuarios"
     conn = get_db_connection()
@@ -877,11 +923,13 @@ def usuarios_dashboard():
     return render_template('admin/usuarios/usuarios.html', titulo=titulo,usuarios=usuarios)
 
 @app.route("/dashboard/usuarios/nuevo")
+@login_required
 def usuarios_nuevo():
     titulo = "Usuario nuevo"
     return render_template('admin/usuarios/crear.html', titulo=titulo)
 
 @app.route('/dashboard/usuarios/crear', methods=('GET', 'POST'))
+@login_required
 def usuarios_crear():
     if request.method == 'POST':
         username=request.form['username']
@@ -906,30 +954,33 @@ def usuarios_crear():
     return redirect(url_for('usuarios_nuevo'))
 
 @app.route('/dashboard/usuarios/<string:id>')
+@login_required
 def usuarios_detalles(id):
     titulo = "Detalles del usuario"
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute('SELECT * FROM usuarios WHERE id_usuario={0};'.format(id))
-    usuario=cur.fetchall()
+    usuario=cur.fetchone()
     conn.commit()
     cur.close()
     conn.close()
-    return render_template('admin/usuarios/detalles.html', titulo=titulo, usuario=usuario[0])
+    return render_template('admin/usuarios/detalles.html', titulo=titulo, usuario=usuario)
 
 @app.route('/dashboard/usuarios/editar/<string:id>')
+@login_required
 def usuarios_editar(id):
     titulo = "Editar usuario"
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute('SELECT * FROM usuarios WHERE id_usuario={0};'.format(id))
-    usuario=cur.fetchall()
+    usuario=cur.fetchone()
     conn.commit()
     cur.close()
     conn.close()
-    return render_template('admin/usuarios/editar.html', titulo=titulo, usuario=usuario[0])
+    return render_template('admin/usuarios/editar.html', titulo=titulo, usuario=usuario)
 
 @app.route('/dashboard/usuarios/actualizar/<string:id>', methods=['POST'])
+@login_required
 def usuarios_actualizar(id):
     if request.method == 'POST':
         nombre = request.form['nombre']
@@ -949,6 +1000,7 @@ def usuarios_actualizar(id):
     return redirect(url_for('usuarios_dashboard'))
 
 @app.route('/dashboard/usuarios/eliminar/<string:id>')
+@login_required
 def usuarios_eliminar(id):
     activo = False
     editado = datetime.now()
@@ -964,34 +1016,44 @@ def usuarios_eliminar(id):
     flash('¡Usuario eliminada correctamente!')
     return redirect(url_for('usuarios_dashboard'))
 
+@app.route('/dashboard/usuarios/perfil')
+@login_required
+def perfil():
+    return render_template('auth/perfil.html')
+
 #------------------------- Apartado Login -------------------------
 
 @app.route('/login')
 def login():
-    return render_template('login.html')
+    return render_template('auth/login.html')
 
-@app.route('/loguear', methods=['POST'])
+@app.route('/loguear', methods=('GET', 'POST'))
 def loguear():
     if request.method == 'POST':
         Username=request.form['Username']
         Password=request.form['Password']
-        user=User(0,Username,Password,None)
+        user=User(0,Username,Password,None,None,None,None)
         loged_user=ModuleUser.login(get_db_connection(),user)
 
         if loged_user!= None:
             if loged_user.password:
                 login_user(loged_user)
-                return redirect(url_for('usuarios_Ver'))
+                return redirect(url_for('dashboard'))
             else:
                 flash('Nombre de usuario y/o Contraseña incorrecta.')
-                return render_template('login.html')
+                return redirect(url_for('login'))
         else:
             flash('Nombre de usuario y/o Contraseña incorrecta.')
-            return render_template('login.html')
+            return redirect(url_for('login'))
     else:
-            flash('Nombre de usuario y/o Contraseña incorrecta.')
-            return render_template('login.html')
+        #flash('3 - Nombre de usuario y/o Contraseña incorrecta.')  #Valida si ingresan correctamente a la ruta
+        return redirect(url_for('login'))
 
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
 
 #------------------------- Error Handlers -------------------------
 def pagina_no_encontrada(error):

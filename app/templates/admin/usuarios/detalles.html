@@ -14,16 +14,18 @@
       {% else %}
       Usuario
       {% endif %}</small></p>
-    <p class="card-text"><small class="text-muted">Última edición: {{usuario.6}}</small></p>
-    <p class="card-text"><small class="text-muted">Fecha de creación: {{usuario.5[:10]}}</small></p>
+    <p class="card-text"><small class="text-muted">Última edición: {{usuario.6|string}}</small></p>
+    <p class="card-text"><small class="text-muted">Fecha de creación: {{usuario.5|string}}</small></p>
   </div>
 </div>
 
 
   <div class="row mt-3">
+    {% if current_user.tipo == True %}
     <div class="col">
       <a href="{{url_for('usuarios_editar', id=usuario[0])}}" class="btn btn-primary float-end">Editar</a>
     </div>
+    {% endif %}
     <div class="col">
       <a href="{{ url_for('usuarios_dashboard') }}" class="btn btn-danger float-start">Atras</a>
     </div>

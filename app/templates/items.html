@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Items</title>
+</head>
+<body>
+    <h1>Items</h1>
+    <ul>
+        {% for item in items %}
+            <li>{{ item.nombre }}</li> 
+        {% endfor %}
+    </ul>
+
+    <div>
+        {% if page > 1 %}
+            <a href="/items?page={{ page - 1 }}&per_page={{ per_page }}">Previous</a>
+        {% endif %}
+        
+        {% if page < total_pages %}
+            <a href="/items?page={{ page + 1 }}&per_page={{ per_page }}">Next</a>
+        {% endif %}
+    </div>
+</body>
+</html>

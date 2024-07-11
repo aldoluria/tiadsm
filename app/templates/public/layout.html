@@ -35,7 +35,7 @@
                 {% if profesores %}
                 {% for profesor in profesores %}
                 <li><a class="dropdown-item" href="#">{{profesor.1}} {{profesor.2}} {{profesor.3}}</a></li>
-                {%endfor%}
+                {% endfor %}
                 {% else %}
                 <li><a class="dropdown-item" href="#">No hay registros</a></li>
                 {% endif %}
@@ -49,7 +49,11 @@
             </li>
           </ul>
           <span class="navbar-text">
-            <a class="nav-item nav-link" href="#"><i class="far fa-user"></i> Login</a>
+            {% if current_user.is_authenticated %}
+            <a class="nav-item nav-link" href="{{url_for('logout')}}"><i class="fa-regular fa-right-from-bracket"></i> Logout</a>
+            {% else %}
+            <a class="nav-item nav-link" href="{{url_for('login')}}"><i class="far fa-user"></i> Login</a>
+            {% endif %}
           </span>
         </div>
       </div>
