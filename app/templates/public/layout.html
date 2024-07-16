@@ -31,14 +31,7 @@
                 Profesores
               </a>
               <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                {% set profesores = listar_profesores() %}
-                {% if profesores %}
-                {% for profesor in profesores %}
-                <li><a class="dropdown-item" href="#">{{profesor.1}} {{profesor.2}} {{profesor.3}}</a></li>
-                {% endfor %}
-                {% else %}
-                <li><a class="dropdown-item" href="#">No hay registros</a></li>
-                {% endif %}
+                
               </ul>
             </li>
             <li class="nav-item">

@@ -1,0 +1,31 @@
+{% extends './admin/layout_admin.html' %}
+
+{% block title %} {{titulo}} {% endblock %}
+
+{% block body %}
+
+<div class="col"><h2>{{titulo}}</h2></div>
+
+<form method="post" action="{{url_for('tipo_crear')}}">
+    <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+
+    <div class="form-group mb-3">
+      <label for="nombre">Nombre de tipo de usuario</label>
+      <input type="text" class="form-control" id="nombre" placeholder="Nombre de usuario" name="nombre">
+    </div>
+
+  <div class="row mb-3">
+    <div class="col">
+      <button class="btn btn-primary float-end" type="submit">
+        Guardar
+      </button>
+    </div>
+    <div class="col">
+      <a class="btn btn-danger float-start" href="{{url_for('index')}}">Cancelar</a>
+    </div>
+  </div>
+
+</form>
+
+
+{% endblock %}

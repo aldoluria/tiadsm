@@ -24,7 +24,8 @@
             <tr>
               <th class="text-center">Editar</th>
               <th>Nombre de usuario</th>
-              <th class="text-center">Tipo de Usuario</th>
+              <th >Tipo de Usuario</th>
+              <th class="text-center">Creado</th>
               <th class="text-center">Eliminar</th>
             </tr>
           </thead>
@@ -32,11 +33,12 @@
             {% if usuarios %}
             {% for usuario in usuarios %}
                 <tr>
-                    <td class="text-center"><a class="btn btn-sm btn-primary" href="{{url_for('usuarios_editar', id=usuario[0])}}"><i class="fas fa-edit"></i></a></td>
-                    <td><a href="{{url_for('usuarios_detalles', id=usuario[0])}}">{{ usuario[1] }}</a></td>
-                    <td class="text-center">{% if usuario.3==true %}Administrador{% else %}Usuario{% endif %}</td>
+                    <td class="text-center"><a class="btn btn-sm btn-primary" href="{{url_for('usuarios_editar', id=usuario.id_usuario)}}"><i class="fas fa-edit"></i></a></td>
+                    <td><a href="{{url_for('usuarios_detalles', id=usuario.id_usuario)}}">{{usuario.username}}</a></td>
+                    <td>{{usuario.nombre}}</td>
+                    <td class="text-center">{{ usuario.creado|formatear_tiempo }}</td>
                     <td class="text-center">
-                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#staticBackdrop-{{usuario.0}}">
+                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#staticBackdrop-{{usuario.id_usuario}}">
                             <i class="fas fa-trash-alt"></i>
                         </button>
                     </td>
@@ -53,26 +55,45 @@
     </div>
 
     <nav aria-label="Page navigation example">
-        <ul class="pagination justify-content-center">
-          <li class="page-item">
-            <a class="page-link" href="#" aria-label="Previous">
-              <span aria-hidden="true">&laquo;</span>
-            </a>
-          </li>
-          <li class="page-item"><a class="page-link" href="#">1</a></li>
-          <li class="page-item"><a class="page-link" href="#">2</a></li>
-          <li class="page-item"><a class="page-link" href="#">3</a></li>
-          <li class="page-item">
-            <a class="page-link" href="#" aria-label="Next">
-              <span aria-hidden="true">&raquo;</span>
-            </a>
-          </li>
-        </ul>
-      </nav>
+      <ul class="pagination justify-content-center">
+        {% if page > 1 %}
+        <li class="page-item">
+          <a class="page-link" href="{{url_for('usuarios_dashboard')}}?page={{ page - 1 }}&per_page={{ per_page }}" aria-label="Previous">
+            <span aria-hidden="true">&laquo;</span>
+          </a>
+        </li>
+          {% if page != 1 and page != 2 %}
+          <li class="page-item"><a class="page-link" href="{{url_for('usuarios_dashboard')}}">1</a></li>
+            {% if page != 3 %}
+            <li class="page-item"><a class="page-link disabled" >...</a></li>
+            {% endif %}
+          {% endif %}
+          <li class="page-item"><a class="page-link" href="{{url_for('usuarios_dashboard')}}?page={{ page - 1 }}&per_page={{ per_page }}">{{page-1}}</a></li>
+          {% endif %}
+
+        <li class="page-item"><a class="page-link active" href="#">{{page}}</a></li>
+        
+        {% if page < total_pages %}
+        <li class="page-item"><a class="page-link" href="{{url_for('usuarios_dashboard')}}?page={{ page + 1 }}&per_page={{ per_page }}">{{page+1}}</a></li>
+          {% if page != total_pages and page != total_pages-1 %}
+            {% if page != total_pages-2 %}
+            <li class="page-item"><a class="page-link disabled" >...</a></li>
+            {% endif %}
+            <li class="page-item"><a class="page-link" href="{{url_for('usuarios_dashboard')}}?page={{ total_pages }}&per_page={{ per_page }}">{{total_pages}}</a></li>
+          {% endif %}
+        <li class="page-item">
+          <a class="page-link" href="{{url_for('usuarios_dashboard')}}?page={{ page + 1 }}&per_page={{ per_page }}" aria-label="Next">
+            <span aria-hidden="true">&raquo;</span>
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+
     
     {% if usuarios %}
         {% for usuario in usuarios %}
-        <div class="modal fade" id="staticBackdrop-{{usuario.0}}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal fade" id="staticBackdrop-{{usuario.id_usuario}}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
             <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -80,11 +101,11 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                ¿Deseas eliminar <strong>{{ usuario[1] }}</strong>?
+                ¿Deseas eliminar <strong>{{ usuario.username }}</strong>?
                 </div>
                 <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <a class="btn btn-danger" href="{{url_for('usuarios_eliminar', id=usuario[0])}}" class="btn-delete"><i class="fas fa-trash-alt"></i> Eliminar</a>
+                <a class="btn btn-danger" href="{{url_for('usuarios_eliminar', id=usuario.id_usuario)}}" class="btn-delete"><i class="fas fa-trash-alt"></i> Eliminar</a>
                 </div>
             </div>
             </div>

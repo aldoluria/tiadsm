@@ -15,19 +15,26 @@
   {% endif %}
 {% endwith %}
 
-  <form method="post" action="{{url_for('usuarios_actualizar', id=usuario[0])}}">
+  <form method="post" action="{{url_for('usuarios_actualizar', id=usuario.id_usuario)}}">
   <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
 
   <div class="form-group mb-3">
     <label  for="nombre">Nombre de usuario</label>
-    <input type="text" class="form-control" id="nombre" placeholder="Nombre" name="nombre" value="{{usuario.1}}">
+    <input type="text" class="form-control" id="nombre" placeholder="Nombre" name="username" value="{{usuario.username}}" pattern="[A-Za-z0-9]+" title="Solo se permiten letras y números, sin espacios ni caracteres especiales" required>
   </div>
 
   <div class="form-group mb-3">
     <label for="materno">Tipo de usuario</label>
     <select class="form-select" aria-label="Default select example" name="tipo_usuario">
-      <option value="{{usuario.3}}" selected>{% if usuario.3==true %}Administrador{% else %}Usuario{% endif %}</option>
-      <option value="{% if usuario.3==true %}False{% else %}True{% endif %}">{% if usuario.3==true %}Usuario{% else %}Administrador{% endif %}</option>
+      <option value="{{usuario.id_tipo}}" selected>{{usuario.nombre}}</option>
+      {% set tipos = listar_tipos() %}
+      {% if tipos %}
+      {% for tipo in tipos %}
+      {% if tipo[0] != usuario.id_tipo %}
+      <option value="{{tipo[0]}}">{{tipo[1]}}</option>
+      {% endif %}  
+      {% endfor %}
+      {% endif %}  
     </select>
   </div>
 

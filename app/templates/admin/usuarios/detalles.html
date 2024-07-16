@@ -7,15 +7,12 @@
 <div class="card">
   <div class="card-body">
     <blockquote class="blockquote mb-0">
-      <p>{{usuario.1}}</p>
+      <p>{{usuario.username}}</p>
     </blockquote>
     <br>
-    <p class="card-text"><small class="text-muted">Tipo de usuario: {% if usuario.3==true %}Administrador
-      {% else %}
-      Usuario
-      {% endif %}</small></p>
-    <p class="card-text"><small class="text-muted">Última edición: {{usuario.6|string}}</small></p>
-    <p class="card-text"><small class="text-muted">Fecha de creación: {{usuario.5|string}}</small></p>
+    <p class="card-text"><small class="text-muted">Tipo de usuario: {{usuario.nombre}}</small></p>
+    <p class="card-text"><small class="text-muted">Última edición: {{usuario.editado|formatear_tiempo}}</small></p>
+    <p class="card-text"><small class="text-muted">Fecha de creación: {{usuario.creado.strftime('%Y-%m-%d %H:%M:%S')[:16]}} ({{usuario.creado|formatear_tiempo}})</small></p>
   </div>
 </div>
 

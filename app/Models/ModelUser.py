@@ -20,7 +20,7 @@ class ModuleUser():
     def get_by_id(self, db, id_usuario):
         try:
             cur=db.cursor()
-            sql="SELECT id_usuario, username, tipo_usuario, activo, creado, editado FROM usuarios WHERE activo='true' and id_usuario='{}'".format(id_usuario)
+            sql="SELECT U.id_usuario, U.username, T.nombre, U.activo, U.creado, U.editado FROM usuarios AS U INNER JOIN tipos_usuarios AS T ON U.id_tipo = T.id_tipo WHERE U.activo='true' and U.id_usuario='{}'".format(id_usuario)
             cur.execute(sql)
             row=cur.fetchone()
             if row != None:

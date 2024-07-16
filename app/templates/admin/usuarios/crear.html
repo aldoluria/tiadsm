@@ -3,6 +3,16 @@
 {% block title %} {{titulo}} {% endblock %}
 
 {% block body %}
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{% if "Error" in message %}danger {% elif "Advertencia" in message %}warning {% else %}success {% endif %} alert-dismissible fade show" role="alert">
+        <strong>{{message}}</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
 
 <div class="col"><h2>{{titulo}}</h2></div>
 
@@ -11,19 +21,23 @@
 
     <div class="form-group mb-3">
       <label for="nombre">Nombre de usuario</label>
-      <input type="text" class="form-control" id="nombre" placeholder="Nombre de usuario" name="username">
+      <input type="text" class="form-control" id="nombre" placeholder="Nombre de usuario" name="username" pattern="[A-Za-z0-9]+" title="Solo se permiten letras y números, sin espacios ni caracteres especiales" required>
     </div>
 
     <div class="form-group mb-3">
       <label for="nombre">Contraseña</label>
-      <input type="password" class="form-control" id="nombre" placeholder="Contraseña" name="password">
+      <input type="password" class="form-control" id="nombre" placeholder="Contraseña" name="password" required>
     </div>
-
     <div class="form-group mb-3">
       <label for="materno">Tipo de usuario</label>
       <select class="form-select" aria-label="Default select example" name="tipo_usuario">
-        <option value="False" selected>Usuario</option>
-        <option value="True">Administrador</option>
+        <option disabled>--- Seleccione una opción ---</option>
+        {% set tipos = listar_tipos() %}
+        {% if tipos %}
+        {% for tipo in tipos %}
+        <option value="{{tipo[0]}}">{{tipo[1]}}</option>
+        {% endfor %}
+        {% endif %}
       </select>
     </div>
 

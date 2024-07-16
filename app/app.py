@@ -1,8 +1,10 @@
 import os
 import uuid
+import re
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 from werkzeug.utils import secure_filename
 from flask import Flask, render_template, url_for, redirect, request, flash, Blueprint, jsonify
 from flask_wtf.csrf import CSRFProtect
@@ -32,7 +34,7 @@ Despues, debemos configurar nuestras variables de entorno (Variables de usuario)
 def get_db_connection():
     try:
         conn = psycopg2.connect(host='localhost',
-                                dbname='escuela_aglg',
+                                dbname='escuela',
                                 user=os.environ['DB_USERNAME'],
                                 password=os.environ['DB_PASSWORD'])
         return conn
@@ -63,17 +65,26 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def allowed_username(username):
+    # Define el patrón de la expresión regular para letras y números sin espacios ni caracteres especiales
+    pattern = re.compile(r'^[a-zA-Z0-9]+$')
+    # Comprueba si el nombre de usuario coincide con el patrón
+    if pattern.match(username):
+        return True
+    else:
+        return False
+        
 #------------------------- CUSTOM TAGS -------------------------
 
 @custom_tags.app_template_global()
-def listar_profesores():
+def listar_tipos():
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute('SELECT * FROM profesores WHERE activo=true ORDER BY nombre ASC;')
-    profesores = cur.fetchall()
+    cur.execute('SELECT * FROM tipos_usuarios WHERE activo=true ORDER BY nombre ASC;')
+    tipos = cur.fetchall()
     cur.close()
     conn.close()
-    return profesores
+    return tipos
 
 @custom_tags.app_template_global()
 def listar_carreras():
@@ -164,6 +175,34 @@ def get_items():
         total_pages=total_pages
     )
 
+#------------------------- Tiempo -------------------------
+@app.template_filter('formatear_tiempo')
+def formatear_tiempo(fecha_pasada):
+    ahora = datetime.now()
+    diferencia = relativedelta(ahora, fecha_pasada)
+
+    if diferencia.years > 0:
+        return f"Hace {diferencia.years} años"
+    elif diferencia.years == 1:
+        return f"Hace {diferencia.years} año"
+    elif diferencia.months > 0:
+        return f"Hace {diferencia.months} meses"
+    elif diferencia.months == 1:
+        return f"Hace {diferencia.months} mes"
+    elif diferencia.days > 0:
+        return f"Hace {diferencia.days} días"
+    elif diferencia.days == 1:
+        return f"Hace {diferencia.days} día"
+    elif diferencia.hours > 0:
+        return f"Hace {diferencia.hours} horas"
+    elif diferencia.hours == 1:
+        return f"Hace {diferencia.hours} hora"
+    elif diferencia.minutes > 0:
+        return f"Hace {diferencia.minutes} minutos"
+    elif diferencia.minutes == 1:
+        return f"Hace {diferencia.minutes} minuto"
+    else:
+        return "Hace unos segundos"
 
 #------------------------- DASHBOARD -------------------------
 @app.route("/dashboard")
@@ -174,7 +213,176 @@ def dashboard():
     #print((current_user.tipo))
     return render_template('admin/dashboard.html', titulo=titulo)
 
-#------------------------- CRUD Alumnos -------------------------
+#------------------------- CRUD Tipo Usuarios -------------------------
+
+@app.route("/tipo")
+@login_required
+def tipo_usuarios_crear():
+    return render_template("tipo.html") 
+
+@app.route('/tipo/crear', methods=('GET', 'POST'))
+@login_required
+def tipo_crear():
+    if request.method == 'POST':
+        nombre=request.form['nombre']
+        activo = True
+        creado = datetime.now()
+        editado = datetime.now()
+        print(nombre)
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        sql="INSERT INTO tipos_usuarios (nombre, activo, creado, editado) VALUES (%s, %s, %s, %s)"
+        valores=(nombre, activo, creado, editado)
+        cur.execute(sql,valores)
+        conn.commit()
+        cur.close()
+        conn.close()
+        print("-----------------------------------------------------------------ya we------------------------------")
+
+        flash('¡Usuario agregado exitosamente!')
+        return redirect(url_for('index'))
+    return redirect(url_for('index'))
+
+#------------------------- CRUD Usuarios -------------------------
+
+@app.route("/dashboard/usuarios")
+@login_required
+def usuarios_dashboard():
+    titulo = "Usuarios"
+    sql_count = 'SELECT COUNT(*) FROM usuarios WHERE activo=true;'
+    sql_lim = 'SELECT U.id_usuario, U.username, T. id_tipo, T.nombre, U.creado FROM usuarios AS U INNER JOIN tipos_usuarios AS T ON U.id_tipo = T.id_tipo WHERE U.activo=true ORDER BY U.id_usuario DESC LIMIT %s OFFSET %s;'
+    paginado = paginador(sql_count,sql_lim,1,1)
+    return render_template('admin/usuarios/usuarios.html', titulo=titulo,
+                            usuarios=paginado[0],
+                            page=paginado[1],
+                            per_page=paginado[2],
+                            total_items=paginado[3],
+                            total_pages=paginado[4])
+
+@app.route("/dashboard/usuarios/nuevo")
+@login_required
+def usuarios_nuevo():
+    titulo = "Usuario nuevo"
+    return render_template('admin/usuarios/crear.html', titulo=titulo)
+
+@app.route('/dashboard/usuarios/crear', methods=('GET', 'POST'))
+@login_required
+def usuarios_crear():
+    if request.method == 'POST':
+        username=request.form['username']
+        if allowed_username(username):
+            password=request.form['password']
+            Pass=generate_password_hash(password)
+            tipo_usuario=int(request.form['tipo_usuario'])
+            activo = True
+            creado = datetime.now()
+            editado = datetime.now()
+            conn = get_db_connection()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            sql_validar="SELECT COUNT(*) FROM usuarios WHERE username = '{}'".format(username)
+            cur.execute(sql_validar)
+            existe = cur.fetchone()['count']
+            if existe:
+                cur.close()
+                conn.close()
+                flash('Error: El nombre de usuario seleccionado ya existe. Intente con otro.')
+                return redirect(url_for('usuarios_nuevo'))
+            else:
+                sql="INSERT INTO usuarios (username, password, id_tipo, activo, creado, editado) VALUES (%s, %s, %s, %s, %s, %s)"
+                valores=(username, Pass, tipo_usuario, activo, creado, editado)
+                cur.execute(sql,valores)
+                conn.commit()
+                cur.close()
+                conn.close()
+                flash('¡Usuario agregado exitosamente!')
+                return redirect(url_for('usuarios_dashboard'))
+        else:
+            flash('Error: El nombre de usuario no cumple con las características. Intente con otro.')
+            return redirect(url_for('usuarios_nuevo'))
+    return redirect(url_for('usuarios_nuevo'))
+
+@app.route('/dashboard/usuarios/<string:id>')
+@login_required
+def usuarios_detalles(id):
+    titulo = "Detalles del usuario"
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute('SELECT U.id_usuario, U.username, T. id_tipo, T.nombre, U.creado, U.editado FROM usuarios AS U INNER JOIN tipos_usuarios AS T ON U.id_tipo = T.id_tipo WHERE U.activo=true AND U.id_usuario={0};'.format(id))
+    usuario=cur.fetchone()
+    conn.commit()
+    cur.close()
+    conn.close()
+    return render_template('admin/usuarios/detalles.html', titulo=titulo, usuario=usuario)
+
+@app.route('/dashboard/usuarios/editar/<string:id>')
+@login_required
+def usuarios_editar(id):
+    titulo = "Editar usuario"
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute('SELECT U.id_usuario, U.username, T. id_tipo, T.nombre, U.creado, U.editado FROM usuarios AS U INNER JOIN tipos_usuarios AS T ON U.id_tipo = T.id_tipo WHERE U.activo=true AND U.id_usuario={0};'.format(id))
+    usuario=cur.fetchone()
+    conn.commit()
+    cur.close()
+    conn.close()
+    return render_template('admin/usuarios/editar.html', titulo=titulo, usuario=usuario)
+
+@app.route('/dashboard/usuarios/actualizar/<string:id>', methods=['POST'])
+@login_required
+def usuarios_actualizar(id):
+    if request.method == 'POST':
+        username = request.form['username']
+        if allowed_username(username):
+            tipo_usuario=request.form['tipo_usuario']
+            editado = datetime.now()
+            conn = get_db_connection()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            sql_validar="SELECT COUNT(*) FROM usuarios WHERE username = '{}'".format(username)
+            cur.execute(sql_validar)
+            existe = cur.fetchone()['count']
+            if existe:
+                cur.close()
+                conn.close()
+                flash('Error: El nombre de usuario seleccionado ya existe. Intente con otro.')
+                return redirect(url_for('usuarios_editar',id=id))
+            else:
+                sql="UPDATE usuarios SET username=%s, id_tipo=%s, editado=%s WHERE id_usuario=%s"        
+                valores=(username, tipo_usuario, editado, id)
+                cur.execute(sql,valores)
+                conn.commit()
+                cur.close()
+                conn.close()
+
+                flash('¡Usuario modificado exitosamente!')
+        else:
+            flash('Error: El nombre de usuario no cumple con las características. Intente con otro.')
+            return redirect(url_for('usuarios_editar',id=id))
+    return redirect(url_for('usuarios_dashboard'))
+
+@app.route('/dashboard/usuarios/eliminar/<string:id>')
+@login_required
+def usuarios_eliminar(id):
+    activo = False
+    editado = datetime.now()
+    conn = get_db_connection()
+    cur = conn.cursor()
+    #sql="DELETE FROM usuarios WHERE id_usuario={0}".format(id)
+    sql="UPDATE usuarios SET activo=%s, editado=%s WHERE id_usuario=%s"
+    valores=(activo,editado,id)
+    cur.execute(sql,valores)
+    conn.commit()
+    cur.close()
+    conn.close()
+    flash('¡Usuario eliminada correctamente!')
+    return redirect(url_for('usuarios_dashboard'))
+
+@app.route('/dashboard/usuarios/perfil')
+@login_required
+def perfil():
+    return render_template('auth/perfil.html')
+
+#------------------------- CRUD Datos/Perfil -------------------------
 
 @app.route("/dashboard/alumnos")
 @login_required
@@ -385,206 +593,6 @@ def alumnos_eliminar_foto(foto,id):
             return redirect(url_for('alumnos_editar', id=id))
     else:
         return redirect(url_for('alumnos_dashboard'))
-
-
-#------------------------- CRUD Profesores -------------------------
-
-@app.route("/dashboard/profesores")
-@login_required
-def profesores_dashboard():
-    titulo = "Profesores"
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute('SELECT * FROM profesores WHERE activo=true ORDER BY id_profesor DESC;')
-    profesores = cur.fetchall()
-    cur.close()
-    conn.close()
-    return render_template('admin/profesores/profesores.html', titulo=titulo,profesores=profesores)
-
-@app.route("/dashboard/profesores/nuevo")
-@login_required
-def profesores_nuevo():
-    titulo = "Profesor nuevo"
-    return render_template('admin/profesores/crear.html', titulo=titulo)
-
-@app.route('/dashboard/profesores/crear', methods=('GET', 'POST'))
-@login_required
-def profesores_crear():
-    if request.method == 'POST':
-        nombre = request.form['nombre']
-        paterno = request.form['paterno']
-        materno = request.form['materno']
-        activo = True
-        creado = datetime.now()
-        editado = datetime.now()
-        situacion = True
-        imagen=request.files['Foto']
-
-        if imagen and allowed_file(imagen.filename):
-            # Verificar si el archivo con el mismo nombre ya existe
-            # Creamos un nombre dinamico para la foto de perfil con el nombre del profesor y una cadena aleatoria
-            cadena_aleatoria = my_random_string(10)
-            filename = paterno + "_" + materno + "_" + nombre + "_" + str(creado)[:10] + "_" + cadena_aleatoria + "_" + secure_filename(imagen.filename)
-            file_path = os.path.join(ruta_profesores, filename)
-            if os.path.exists(file_path):
-                flash('Error: ¡Un archivo con el mismo nombre ya existe! Intente renombrar su archivo.')
-                return redirect(url_for('profesores_dashboard'))
-            # Guardar el archivo y registrar en la base de datos
-            imagen.save(file_path)
-
-            conn = get_db_connection()
-            cur = conn.cursor()
-            sql="INSERT INTO profesores (nombre, apellido_paterno, apellido_materno, activo, creado, editado, imagen, situacion) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
-            valores=(nombre, paterno, materno, activo, creado, editado,filename,situacion)
-            cur.execute(sql,valores)
-            conn.commit()
-            cur.close()
-            conn.close()
-
-            flash('¡Profesor agregado exitosamente!')
-            return redirect(url_for('profesores_dashboard'))
-        else:
-            flash('Error: ¡Extensión de archivo invalida! Intente con una imagen valida PNG, JPG o JPEG')
-            return redirect(url_for('profesores_dashboard'))
-
-    return redirect(url_for('profesores_nuevo'))
-
-@app.route('/dashboard/profesores/<string:id>')
-@login_required
-def profesores_detalles(id):
-    titulo = "Detalles del Profesor"
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute('SELECT * FROM profesores WHERE id_profesor={0}'.format(id))
-    profesor=cur.fetchone()
-    conn.commit()
-    cur.close()
-    conn.close()
-    return render_template('admin/profesores/detalles.html', titulo=titulo, profesor=profesor)
-
-@app.route('/dashboard/profesores/editar/<string:id>')
-@login_required
-def profesores_editar(id):
-    titulo = "Editar Profesor"
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute('SELECT * FROM profesores WHERE id_profesor={0}'.format(id))
-    profesor=cur.fetchone()
-    conn.commit()
-    cur.close()
-    conn.close()
-    return render_template('admin/profesores/editar.html', titulo=titulo, profesor=profesor)
-
-@app.route('/dashboard/profesores/actualizar/<string:id>', methods=['POST'])
-@login_required
-def profesores_actualizar(id):
-    if request.method == 'POST':
-        nombre = request.form['nombre']
-        paterno = request.form['paterno']
-        materno = request.form['materno']
-        situacion = request.form['estado']
-        editado = datetime.now()
-
-        conn = get_db_connection()
-        cur = conn.cursor()
-        sql="UPDATE profesores SET nombre=%s, apellido_paterno=%s, apellido_materno=%s , situacion=%s, editado=%s WHERE id_profesor=%s"        
-        valores=(nombre, paterno, materno, situacion, editado, id)
-        cur.execute(sql,valores)
-        conn.commit()
-        cur.close()
-        conn.close()
-
-        flash('¡Profesor modificado exitosamente!')
-    return redirect(url_for('profesores_dashboard'))
-
-@app.route('/dashboard/profesores/actualizar/foto/<string:id>', methods=['POST'])
-@login_required
-def profesores_actualizar_foto(id):
-    if request.method == 'POST':
-        imagen=request.files['Foto']
-        nombre = request.form['nombre']
-        paterno = request.form['paterno']
-        materno = request.form['materno']
-        foto_anterior = request.form['anterior']
-        foto_anterior = os.path.join(ruta_profesores,foto_anterior)
-        editado = datetime.now()
-
-        if imagen and allowed_file(imagen.filename):
-            # Verificar si el archivo con el mismo nombre ya existe
-            # Creamos un nombre dinamico para la foto de perfil con el nombre del profesor y una cadena aleatoria
-            cadena_aleatoria = my_random_string(10)
-            filename = paterno + "_" + materno + "_" + nombre + "_" + str(editado)[:10] + "_" + cadena_aleatoria + "_" + secure_filename(imagen.filename)
-            file_path = os.path.join(ruta_profesores, filename)
-            if os.path.exists(file_path):
-                flash('Error: ¡Un archivo con el mismo nombre ya existe! Intente renombrar su archivo.')
-                return redirect(url_for('profesor_dashboard'))
-            # Guardar el archivo y registrar en la base de datos
-            imagen.save(file_path)
-
-            conn = get_db_connection()
-            cur = conn.cursor()
-            sql=" UPDATE profesores SET editado=%s, imagen=%s WHERE id_profesor=%s"
-            valores=(editado,filename,id)
-            cur.execute(sql,valores)
-            conn.commit()
-            cur.close()
-            conn.close()
-            
-            #Eliminar foto de perfil antigua
-            if request.form['anterior'] != "":
-                if os.path.exists(foto_anterior):
-                    os.remove(foto_anterior)
-
-            flash('¡Foto de perfil actualizada exitosamente!')
-            return redirect(url_for('profesores_editar', id=id))
-        else:
-            flash('Error: ¡Extensión de archivo invalida! Intente con una imagen valida PNG, JPG o JPEG')
-            return redirect(url_for('profesores_editar', id=id))
-
-    return redirect(url_for('profesores_dashboard'))
-
-@app.route('/dashboard/profesores/eliminar/<string:id>')
-@login_required
-def profesores_eliminar(id):
-    activo = False
-    situacion = False
-    editado = datetime.now()
-    conn = get_db_connection()
-    cur = conn.cursor()
-    #sql="DELETE FROM profesores WHERE id_profesor={0}".format(id)
-    sql="UPDATE profesores SET activo=%s, editado=%s, situacion=%s WHERE id_profesor=%s"
-    valores=(activo,editado,situacion,id)
-    cur.execute(sql,valores)
-    conn.commit()
-    cur.close()
-    conn.close()
-    flash('¡Profesor  eliminado correctamente!')
-    return redirect(url_for('profesores_dashboard'))
-
-@app.route('/dashboard/profesores/eliminar/foto/<string:foto>/<string:id>')
-@login_required
-def profesores_eliminar_foto(foto,id):
-    foto_anterior = os.path.join(ruta_profesores,foto)
-    editado = datetime.now()
-    conn = get_db_connection()
-    cur = conn.cursor()
-    #sql="DELETE FROM profesores WHERE id_profesor={0}".format(id)
-    sql="UPDATE profesores SET imagen=%s, editado=%s WHERE id_profesor=%s"
-    valores=("",editado,id)
-    cur.execute(sql,valores)
-    conn.commit()
-    cur.close()
-    conn.close()
-    #Eliminar foto de perfil antigua
-    print(foto_anterior)
-    if foto != "":
-        if os.path.exists(foto_anterior):
-            os.remove(foto_anterior)
-            flash('¡Foto eliminada correctamente!')
-            return redirect(url_for('profesores_editar', id=id))
-    else:
-        flash('Error: ¡No se puede ejecutar esta acción!')
-        return redirect(url_for('profesores_editar', id=id))
 
 #------------------------- CRUD Materias -------------------------
 
@@ -804,7 +812,8 @@ def grupos_dashboard():
     titulo = "Grupos"
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute('SELECT G.*, C.nombre, P.nombre, P.apellido_paterno, P.apellido_materno FROM grupos AS G INNER JOIN profesores AS P ON G.id_profesor = P.id_profesor INNER JOIN carreras AS C ON G.id_carrera = C.id_carrera WHERE G.activo=true and P.activo=true ORDER BY id_grupo DESC;')
+    sql= 'SELECT G.*, C.nombre, P.nombre, P.apellido_paterno, P.apellido_materno FROM grupos AS G INNER JOIN profesores AS P ON G.id_profesor = P.id_profesor INNER JOIN carreras AS C ON G.id_carrera = C.id_carrera WHERE G.activo=true and P.activo=true ORDER BY id_grupo DESC;'
+    cur.execute(sql)
     grupos = cur.fetchall()
     cur.close()
     conn.close()
@@ -908,118 +917,210 @@ def grupos_eliminar(id):
     flash('¡Grupo eliminada correctamente!')
     return redirect(url_for('grupos_dashboard'))
 
-#------------------------- CRUD Usuarios -------------------------
+#------------------------- CRUD Salones -------------------------
 
-@app.route("/dashboard/usuarios")
+#------------------------- CRUD Calificaciones -------------------------
+"""
+
+@app.route("/dashboard/profesores")
 @login_required
-def usuarios_dashboard():
-    titulo = "Usuarios"
+def profesores_dashboard():
+    titulo = "Profesores"
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute('SELECT * FROM usuarios WHERE activo=true ORDER BY id_usuario DESC;')
-    usuarios = cur.fetchall()
+    cur.execute('SELECT * FROM profesores WHERE activo=true ORDER BY id_profesor DESC;')
+    profesores = cur.fetchall()
     cur.close()
     conn.close()
-    return render_template('admin/usuarios/usuarios.html', titulo=titulo,usuarios=usuarios)
+    return render_template('admin/profesores/profesores.html', titulo=titulo,profesores=profesores)
 
-@app.route("/dashboard/usuarios/nuevo")
+@app.route("/dashboard/profesores/nuevo")
 @login_required
-def usuarios_nuevo():
-    titulo = "Usuario nuevo"
-    return render_template('admin/usuarios/crear.html', titulo=titulo)
+def profesores_nuevo():
+    titulo = "Profesor nuevo"
+    return render_template('admin/profesores/crear.html', titulo=titulo)
 
-@app.route('/dashboard/usuarios/crear', methods=('GET', 'POST'))
+@app.route('/dashboard/profesores/crear', methods=('GET', 'POST'))
 @login_required
-def usuarios_crear():
+def profesores_crear():
     if request.method == 'POST':
-        username=request.form['username']
-        password=request.form['password']
-        Pass=generate_password_hash(password)
-        tipo_usuario=request.form['tipo_usuario']
+        nombre = request.form['nombre']
+        paterno = request.form['paterno']
+        materno = request.form['materno']
         activo = True
         creado = datetime.now()
         editado = datetime.now()
+        situacion = True
+        imagen=request.files['Foto']
 
-        conn = get_db_connection()
-        cur = conn.cursor()
-        sql="INSERT INTO usuarios (username, password, tipo_usuario, activo, creado, editado) VALUES (%s, %s, %s, %s, %s, %s)"
-        valores=(username, Pass, tipo_usuario, activo, creado, editado)
-        cur.execute(sql,valores)
-        conn.commit()
-        cur.close()
-        conn.close()
+        if imagen and allowed_file(imagen.filename):
+            # Verificar si el archivo con el mismo nombre ya existe
+            # Creamos un nombre dinamico para la foto de perfil con el nombre del profesor y una cadena aleatoria
+            cadena_aleatoria = my_random_string(10)
+            filename = paterno + "_" + materno + "_" + nombre + "_" + str(creado)[:10] + "_" + cadena_aleatoria + "_" + secure_filename(imagen.filename)
+            file_path = os.path.join(ruta_profesores, filename)
+            if os.path.exists(file_path):
+                flash('Error: ¡Un archivo con el mismo nombre ya existe! Intente renombrar su archivo.')
+                return redirect(url_for('profesores_dashboard'))
+            # Guardar el archivo y registrar en la base de datos
+            imagen.save(file_path)
 
-        flash('¡Usuario agregado exitosamente!')
-        return redirect(url_for('usuarios_dashboard'))
-    return redirect(url_for('usuarios_nuevo'))
+            conn = get_db_connection()
+            cur = conn.cursor()
+            sql="INSERT INTO profesores (nombre, apellido_paterno, apellido_materno, activo, creado, editado, imagen, situacion) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+            valores=(nombre, paterno, materno, activo, creado, editado,filename,situacion)
+            cur.execute(sql,valores)
+            conn.commit()
+            cur.close()
+            conn.close()
 
-@app.route('/dashboard/usuarios/<string:id>')
+            flash('¡Profesor agregado exitosamente!')
+            return redirect(url_for('profesores_dashboard'))
+        else:
+            flash('Error: ¡Extensión de archivo invalida! Intente con una imagen valida PNG, JPG o JPEG')
+            return redirect(url_for('profesores_dashboard'))
+
+    return redirect(url_for('profesores_nuevo'))
+
+@app.route('/dashboard/profesores/<string:id>')
 @login_required
-def usuarios_detalles(id):
-    titulo = "Detalles del usuario"
+def profesores_detalles(id):
+    titulo = "Detalles del Profesor"
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute('SELECT * FROM usuarios WHERE id_usuario={0};'.format(id))
-    usuario=cur.fetchone()
+    cur.execute('SELECT * FROM profesores WHERE id_profesor={0}'.format(id))
+    profesor=cur.fetchone()
     conn.commit()
     cur.close()
     conn.close()
-    return render_template('admin/usuarios/detalles.html', titulo=titulo, usuario=usuario)
+    return render_template('admin/profesores/detalles.html', titulo=titulo, profesor=profesor)
 
-@app.route('/dashboard/usuarios/editar/<string:id>')
+@app.route('/dashboard/profesores/editar/<string:id>')
 @login_required
-def usuarios_editar(id):
-    titulo = "Editar usuario"
+def profesores_editar(id):
+    titulo = "Editar Profesor"
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute('SELECT * FROM usuarios WHERE id_usuario={0};'.format(id))
-    usuario=cur.fetchone()
+    cur.execute('SELECT * FROM profesores WHERE id_profesor={0}'.format(id))
+    profesor=cur.fetchone()
     conn.commit()
     cur.close()
     conn.close()
-    return render_template('admin/usuarios/editar.html', titulo=titulo, usuario=usuario)
+    return render_template('admin/profesores/editar.html', titulo=titulo, profesor=profesor)
 
-@app.route('/dashboard/usuarios/actualizar/<string:id>', methods=['POST'])
+@app.route('/dashboard/profesores/actualizar/<string:id>', methods=['POST'])
 @login_required
-def usuarios_actualizar(id):
+def profesores_actualizar(id):
     if request.method == 'POST':
         nombre = request.form['nombre']
-        tipo_usuario=request.form['tipo_usuario']
+        paterno = request.form['paterno']
+        materno = request.form['materno']
+        situacion = request.form['estado']
         editado = datetime.now()
 
         conn = get_db_connection()
         cur = conn.cursor()
-        sql="UPDATE usuarios SET username=%s, tipo_usuario=%s, editado=%s WHERE id_usuario=%s"        
-        valores=(nombre, tipo_usuario, editado, id)
+        sql="UPDATE profesores SET nombre=%s, apellido_paterno=%s, apellido_materno=%s , situacion=%s, editado=%s WHERE id_profesor=%s"        
+        valores=(nombre, paterno, materno, situacion, editado, id)
         cur.execute(sql,valores)
         conn.commit()
         cur.close()
         conn.close()
 
-        flash('¡Usuario modificado exitosamente!')
-    return redirect(url_for('usuarios_dashboard'))
+        flash('¡Profesor modificado exitosamente!')
+    return redirect(url_for('profesores_dashboard'))
 
-@app.route('/dashboard/usuarios/eliminar/<string:id>')
+@app.route('/dashboard/profesores/actualizar/foto/<string:id>', methods=['POST'])
 @login_required
-def usuarios_eliminar(id):
+def profesores_actualizar_foto(id):
+    if request.method == 'POST':
+        imagen=request.files['Foto']
+        nombre = request.form['nombre']
+        paterno = request.form['paterno']
+        materno = request.form['materno']
+        foto_anterior = request.form['anterior']
+        foto_anterior = os.path.join(ruta_profesores,foto_anterior)
+        editado = datetime.now()
+
+        if imagen and allowed_file(imagen.filename):
+            # Verificar si el archivo con el mismo nombre ya existe
+            # Creamos un nombre dinamico para la foto de perfil con el nombre del profesor y una cadena aleatoria
+            cadena_aleatoria = my_random_string(10)
+            filename = paterno + "_" + materno + "_" + nombre + "_" + str(editado)[:10] + "_" + cadena_aleatoria + "_" + secure_filename(imagen.filename)
+            file_path = os.path.join(ruta_profesores, filename)
+            if os.path.exists(file_path):
+                flash('Error: ¡Un archivo con el mismo nombre ya existe! Intente renombrar su archivo.')
+                return redirect(url_for('profesor_dashboard'))
+            # Guardar el archivo y registrar en la base de datos
+            imagen.save(file_path)
+
+            conn = get_db_connection()
+            cur = conn.cursor()
+            sql=" UPDATE profesores SET editado=%s, imagen=%s WHERE id_profesor=%s"
+            valores=(editado,filename,id)
+            cur.execute(sql,valores)
+            conn.commit()
+            cur.close()
+            conn.close()
+            
+            #Eliminar foto de perfil antigua
+            if request.form['anterior'] != "":
+                if os.path.exists(foto_anterior):
+                    os.remove(foto_anterior)
+
+            flash('¡Foto de perfil actualizada exitosamente!')
+            return redirect(url_for('profesores_editar', id=id))
+        else:
+            flash('Error: ¡Extensión de archivo invalida! Intente con una imagen valida PNG, JPG o JPEG')
+            return redirect(url_for('profesores_editar', id=id))
+
+    return redirect(url_for('profesores_dashboard'))
+
+@app.route('/dashboard/profesores/eliminar/<string:id>')
+@login_required
+def profesores_eliminar(id):
     activo = False
+    situacion = False
     editado = datetime.now()
     conn = get_db_connection()
     cur = conn.cursor()
-    #sql="DELETE FROM usuarios WHERE id_usuario={0}".format(id)
-    sql="UPDATE usuarios SET activo=%s, editado=%s WHERE id_usuario=%s"
-    valores=(activo,editado,id)
+    #sql="DELETE FROM profesores WHERE id_profesor={0}".format(id)
+    sql="UPDATE profesores SET activo=%s, editado=%s, situacion=%s WHERE id_profesor=%s"
+    valores=(activo,editado,situacion,id)
     cur.execute(sql,valores)
     conn.commit()
     cur.close()
     conn.close()
-    flash('¡Usuario eliminada correctamente!')
-    return redirect(url_for('usuarios_dashboard'))
+    flash('¡Profesor  eliminado correctamente!')
+    return redirect(url_for('profesores_dashboard'))
 
-@app.route('/dashboard/usuarios/perfil')
+@app.route('/dashboard/profesores/eliminar/foto/<string:foto>/<string:id>')
 @login_required
-def perfil():
-    return render_template('auth/perfil.html')
+def profesores_eliminar_foto(foto,id):
+    foto_anterior = os.path.join(ruta_profesores,foto)
+    editado = datetime.now()
+    conn = get_db_connection()
+    cur = conn.cursor()
+    #sql="DELETE FROM profesores WHERE id_profesor={0}".format(id)
+    sql="UPDATE profesores SET imagen=%s, editado=%s WHERE id_profesor=%s"
+    valores=("",editado,id)
+    cur.execute(sql,valores)
+    conn.commit()
+    cur.close()
+    conn.close()
+    #Eliminar foto de perfil antigua
+    print(foto_anterior)
+    if foto != "":
+        if os.path.exists(foto_anterior):
+            os.remove(foto_anterior)
+            flash('¡Foto eliminada correctamente!')
+            return redirect(url_for('profesores_editar', id=id))
+    else:
+        flash('Error: ¡No se puede ejecutar esta acción!')
+        return redirect(url_for('profesores_editar', id=id))
+
+        
+"""
 
 #------------------------- Apartado Login -------------------------
 
