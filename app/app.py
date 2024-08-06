@@ -121,24 +121,42 @@ def about_us():
 
 #------------------------- Paginador -------------------------
 
-def paginador(sql_count,sql_lim,in_page,per_pages):
+def paginador(sql_count: str, sql_lim: str, search_query: str, in_page: int, per_pages: int) -> tuple[list[dict], int, int, int, int]:
+# Obtener parámetros de paginación
     page = request.args.get('page', in_page, type=int)
     per_page = request.args.get('per_page', per_pages, type=int)
 
+    # Validar los valores de entrada
+    if page < 1:
+        page = 1
+    if per_page < 1:
+        per_page = 1
+
     offset = (page - 1) * per_page
 
-    conn = get_db_connection()
-    cursor = conn.cursor(cursor_factory=RealDictCursor)
-    
-    cursor.execute(sql_count)
-    total_items = cursor.fetchone()['count']
+    try:
+        # Conectar a la base de datos
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-    cursor.execute(sql_lim, (per_page, offset))
-    items = cursor.fetchall()
+        # Ejecutar consulta para contar el total de elementos que coinciden con la búsqueda
+        cursor.execute(sql_count, (f"%{search_query}%",f"%{search_query}%"))
+        total_items = cursor.fetchone()['count']
 
-    cursor.close()
-    conn.close()
+        # Ejecutar consulta para obtener elementos paginados que coinciden con la búsqueda
+        cursor.execute(sql_lim, (f"%{search_query}%",f"%{search_query}%", per_page, offset))
+        items = cursor.fetchall()
 
+    except psycopg2.Error as e:
+        print(f"Error en la base de datos: {e}")
+        items = []
+        total_items = 0
+    finally:
+        # Asegurar el cierre de la conexión
+        cursor.close()
+        conn.close()
+
+    # Calcular el total de páginas
     total_pages = (total_items + per_page - 1) // per_page
 
     return items, page, per_page, total_items, total_pages
@@ -209,8 +227,6 @@ def formatear_tiempo(fecha_pasada):
 @login_required
 def dashboard():
     titulo = "Panel de Administración"
-    print('-------------------------')
-    #print((current_user.tipo))
     return render_template('admin/dashboard.html', titulo=titulo)
 
 #------------------------- CRUD Tipo Usuarios -------------------------
@@ -250,15 +266,17 @@ def tipo_crear():
 @login_required
 def usuarios_dashboard():
     titulo = "Usuarios"
-    sql_count = 'SELECT COUNT(*) FROM usuarios WHERE activo=true;'
-    sql_lim = 'SELECT U.id_usuario, U.username, T. id_tipo, T.nombre, U.creado FROM usuarios AS U INNER JOIN tipos_usuarios AS T ON U.id_tipo = T.id_tipo WHERE U.activo=true ORDER BY U.id_usuario DESC LIMIT %s OFFSET %s;'
-    paginado = paginador(sql_count,sql_lim,1,1)
+    search_query = request.args.get('buscar', '', type=str)
+    sql_count = 'SELECT COUNT(*) FROM usuarios AS U INNER JOIN tipos_usuarios AS T ON U.id_tipo = T.id_tipo WHERE U.activo=true AND (U.username ILIKE %s OR T.nombre ILIKE %s);'
+    sql_lim = 'SELECT U.id_usuario, U.username, T. id_tipo, T.nombre, U.creado FROM usuarios AS U INNER JOIN tipos_usuarios AS T ON U.id_tipo = T.id_tipo WHERE U.activo=true AND (U.username ILIKE %s OR T.nombre ILIKE %s) ORDER BY U.id_usuario DESC LIMIT %s OFFSET %s;'
+    paginado = paginador(sql_count, sql_lim, search_query, 1, 10)
     return render_template('admin/usuarios/usuarios.html', titulo=titulo,
                             usuarios=paginado[0],
                             page=paginado[1],
                             per_page=paginado[2],
                             total_items=paginado[3],
-                            total_pages=paginado[4])
+                            total_pages=paginado[4],
+                            search_query=search_query)
 
 @app.route("/dashboard/usuarios/nuevo")
 @login_required
@@ -463,7 +481,7 @@ def alumnos_detalles(id):
 @app.route('/dashboard/alumnos/editar/<string:id>')
 @login_required
 def alumnos_editar(id):
-    if current_user.tipo == True:
+    if current_user.tipo == "Administrador":
         titulo = "Editar Alumno"
         conn = get_db_connection()
         cur = conn.cursor()
@@ -474,12 +492,12 @@ def alumnos_editar(id):
         conn.close()
         return render_template('admin/alumnos/editar.html', titulo=titulo, alumno=alumno)
     else:
-        return redirect(url_for('alumnos_dashboard'))
+        return redirect(url_for('index'))
 
 @app.route('/dashboard/alumnos/actualizar/<string:id>', methods=['POST'])
 @login_required
 def alumnos_actualizar(id):
-    if request.method == 'POST' and current_user.tipo == True:
+    if request.method == 'POST' and current_user.tipo == "Administrador":
         nombre = request.form['nombre']
         paterno = request.form['paterno']
         materno = request.form['materno']
@@ -502,7 +520,7 @@ def alumnos_actualizar(id):
 @app.route('/dashboard/alumnos/actualizar/foto/<string:id>', methods=['POST'])
 @login_required
 def alumnos_actualizar_foto(id):
-    if request.method == 'POST' and current_user.tipo == True:
+    if request.method == 'POST' and current_user.tipo == "Administrador":
         imagen=request.files['Foto']
         nombre = request.form['nombre']
         paterno = request.form['paterno']
@@ -548,7 +566,7 @@ def alumnos_actualizar_foto(id):
 @app.route('/dashboard/alumnos/eliminar/<string:id>')
 @login_required
 def alumnos_eliminar(id):
-    if current_user.tipo == True:
+    if current_user.tipo == "Administrador":
         activo = False
         situacion = False
         editado = datetime.now()
@@ -569,7 +587,7 @@ def alumnos_eliminar(id):
 @app.route('/dashboard/alumnos/eliminar/foto/<string:foto>/<string:id>')
 @login_required
 def alumnos_eliminar_foto(foto,id):
-    if current_user.tipo == True:
+    if current_user.tipo == "Administrador":
         foto_anterior = os.path.join(ruta_alumnos,foto)
         editado = datetime.now()
         conn = get_db_connection()

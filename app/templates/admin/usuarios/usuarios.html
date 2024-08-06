@@ -16,6 +16,12 @@
 
     <div class="row mb-2">
         <div class="col"><h2>{{titulo}}</h2></div>
+        <div class="col">
+          <form method="get" action="{{url_for('usuarios_dashboard')}}" class="d-flex">
+            <input class="form-control" type="text" name="buscar" value="{{ search_query }}" placeholder="Buscar..." required>
+            <button class="btn btn-outline-success" type="submit"><i class="fas fa-search"></i> </button>
+          </form>
+        </div>
         <div class="col text-end"><a href="{{url_for('usuarios_nuevo')}}" class="btn btn-sm btn-primary"><i class="fas fa-plus-circle"></i> Nuevo</a></div>
     </div>
     <div class="table-responsive">
