@@ -31,16 +31,33 @@ Despues, debemos configurar nuestras variables de entorno (Variables de usuario)
     DB_PASSWORD = Contraseña_Postgres
 """
 
+""" 
+Conexión a Ubuntu
+"""
 def get_db_connection():
     try:
-        conn = psycopg2.connect(host='localhost',
-                                dbname='escuela',
+        conn = psycopg2.connect(host="localhost",
+                                dbname="escuela",
+                                user="postgres",
+                                password="admin")
+        return conn
+    except psycopg2.Error as error:
+        print(f"Error al conectar a la base de datos: {error}")
+        return None
+""" 
+Conexión a Windows
+
+def get_db_connection():
+    try:
+        conn = psycopg2.connect(host="localhost",
+                                dbname="escuela",
                                 user=os.environ['DB_USERNAME'],
                                 password=os.environ['DB_PASSWORD'])
         return conn
     except psycopg2.Error as error:
         print(f"Error al conectar a la base de datos: {error}")
         return None
+"""    
 
 Login_manager_app=LoginManager(app)
 
@@ -1183,12 +1200,28 @@ def acceso_no_autorizado(error):
 
 #------------------------- App Building -------------------------
 
+""" 
+Configuración de Ubuntu
+"""
+
+if __name__ == '__main__':
+    csrf.init_app(app)
+    app.register_blueprint(custom_tags)
+    app.register_error_handler(404, pagina_no_encontrada)
+    app.register_error_handler(401, acceso_no_autorizado)
+    app.run(host='0.0.0.0', port=5000)
+
+""" 
+Configuración de Windows
+"""
+"""
 if __name__ == '__main__':
     csrf.init_app(app)
     app.register_blueprint(custom_tags)
     app.register_error_handler(404, pagina_no_encontrada)
     app.register_error_handler(401, acceso_no_autorizado)
     app.run(debug=True, port=5000)
+"""
 
 #Activar entorno    virtual .venv\Scripts\activate
 #Correr aplicación  python app\app.py run
