@@ -1209,7 +1209,7 @@ if __name__ == '__main__':
     app.register_blueprint(custom_tags)
     app.register_error_handler(404, pagina_no_encontrada)
     app.register_error_handler(401, acceso_no_autorizado)
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0',debug=True, port=8000)
 
 """ 
 Configuración de Windows
